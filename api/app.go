@@ -39,7 +39,7 @@ func NewServer(cfg config.Config) *Server{
 
 	userRouter := v1.Group("/users")
 
-	userRouter.Get("/register", userHandler.CreateUser)
+	userRouter.Post("/register", userHandler.CreateUser)
 
 	return &Server{app: app, config: cfg}
 }

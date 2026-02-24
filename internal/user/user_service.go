@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,10 @@ func NewUserService(repo repository) *userservice {
 }
 
 func (s userservice) CreateUser(ctx context.Context, createUserRequest createUserRequest) error {
+
+	if exists := s.repo.ExistsByEmail(createUserRequest.Email); exists {
+		return errors.New("ALREADY_EXISTS")
+	}
 
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(createUserRequest.Password), 10)
 

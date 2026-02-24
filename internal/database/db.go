@@ -37,5 +37,6 @@ func Connect(databaseurl string) *pgxpool.Pool {
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatal("Database ping failed", err)
 	}
+
 	return pool
 }
