@@ -8,13 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Connect(databsseUrl string) *pgxpool.Pool {
+func Connect(databaseurl string) *pgxpool.Pool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
 
-	poolConfig, err := pgxpool.ParseConfig(databsseUrl)
+	poolConfig, err := pgxpool.ParseConfig(databaseurl)
 
 	if err != nil {
 
@@ -37,6 +37,5 @@ func Connect(databsseUrl string) *pgxpool.Pool {
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatal("Database ping failed", err)
 	}
-
 	return pool
 }
