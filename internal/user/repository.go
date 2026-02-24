@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,4 +55,20 @@ func (r repository) ExistsByEmail(email string) bool {
 	row.Scan(&exists)
 
 	return exists
+}
+
+func (r repository) FindByEmail(email string) User {
+
+	var user User 
+
+	query := `
+		SELECT id, name, email, password, joined_at FROM users
+		WHERE email = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, email)
+
+	row.Scan(&user.Id, &user.Name, &user.Email,&user.Password, &user.JoinedAt)
+
+	return user
 }

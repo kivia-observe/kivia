@@ -30,3 +30,24 @@ func (h userhandler) CreateUser(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created successfully"})
 }
+
+func (h userhandler) Login(c fiber.Ctx) error {
+
+	var loginRequest LoginRequest
+
+	if err := c.Bind().JSON(&loginRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	 response, err := h.service.Login(c, loginRequest);
+
+	if err != nil {
+
+		if err.Error() == "NOT_EXISTS" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid credentials"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
+}

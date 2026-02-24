@@ -4,32 +4,31 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/winnerx0/dyno/internal/config"
 	"github.com/winnerx0/dyno/internal/database"
+	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
 	"github.com/winnerx0/dyno/internal/user"
 )
 
 type Server struct {
-
 	app *fiber.App
 
 	config config.Config
-
 }
 
-func NewServer(cfg config.Config) *Server{
+func NewServer(cfg config.Config) *Server {
 
 	app := fiber.New(fiber.Config{
 		AppName: "Dyno",
-
 	})
 
 	db := database.Connect(cfg.DBUrl)
 
 	userRepository := user.NewRepository(db)
 
-	userService := user.NewUserService(*userRepository)
+	refreshTokenRepository := refreshtoken.NewRepository(db)
+
+	userService := user.NewUserService(*userRepository, *refreshTokenRepository, cfg)
 
 	userHandler := user.NewUserHandler(*userService)
-
 
 	app.Get("/hello", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hey"})
@@ -40,6 +39,8 @@ func NewServer(cfg config.Config) *Server{
 	userRouter := v1.Group("/users")
 
 	userRouter.Post("/register", userHandler.CreateUser)
+
+	userRouter.Post("/login", userHandler.Login)
 
 	return &Server{app: app, config: cfg}
 }

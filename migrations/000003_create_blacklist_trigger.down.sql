@@ -1,0 +1,1 @@
+DROP TRIGGER blacklist_trigger ON refresh_tokens;

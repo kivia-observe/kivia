@@ -1,30 +1,38 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	
 )
 
 type Config struct {
 	DBUrl string
 
 	Port string
+
+	JwtAccessTokenSecret string
+
+	JwtRefreshTokenSecret string
 }
 
 func Load() *Config {
 
 	return &Config{
-		DBUrl: getEnv("DATABASE_URL", "postgresql://postgres:2007@localhost:5432/dyno"),
-		Port:  getEnv("PORT", "8000"),
+		DBUrl:                 getEnv("DATABASE_URL"),
+		Port:                  getEnv("PORT"),
+		JwtAccessTokenSecret:  getEnv("JWT_ACCESS_TOKEN_SECRET"),
+		JwtRefreshTokenSecret: getEnv("JWT_REFRESH_TOKEN_SECRET"),
 	}
 
 }
 
-func getEnv(key string, defaultValue string) (value string) {
+func getEnv(key string) (value string) {
 
-	if value = os.Getenv(key); value != "" {
-		return value
+	if value = os.Getenv(key); value == "" {
+		panic(fmt.Sprintf("%s not in .env", key))
 	}
 
-	return defaultValue
+	return value
 
 }
