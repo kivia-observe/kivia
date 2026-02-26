@@ -1,4 +1,4 @@
-package user
+package auth
 
 type createUserRequest struct {
 	Email    string `json:"email"`

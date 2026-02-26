@@ -6,17 +6,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type repository struct {
+type Repository struct {
 	db *pgxpool.Pool
 }
 
-func NewRepository(db *pgxpool.Pool) *repository {
-	return &repository{
+func NewRepository(db *pgxpool.Pool) *Repository {
+	return &Repository{
 		db: db,
 	}
 }
 
-func (r repository) Save(user User) error {
+func (r Repository) Save(user User) error {
 
 	query := `
 
@@ -28,7 +28,7 @@ func (r repository) Save(user User) error {
 	return err
 }
 
-func (r repository) Delete(userId string) error {
+func (r Repository) Delete(userId string) error {
 
 	query := `
 		DELETE FROM users WHERE id = $1
@@ -39,7 +39,7 @@ func (r repository) Delete(userId string) error {
 
 }
 
-func (r repository) ExistsByEmail(email string) bool {
+func (r Repository) ExistsByEmail(email string) bool {
 
 	var exists bool 
 
@@ -57,7 +57,7 @@ func (r repository) ExistsByEmail(email string) bool {
 	return exists
 }
 
-func (r repository) FindByEmail(email string) User {
+func (r Repository) FindByEmail(email string) User {
 
 	var user User 
 
