@@ -1,0 +1,34 @@
+package apikey
+
+import "github.com/gofiber/fiber/v3"
+
+type apiKeyHandler struct {
+	service apiKeyService
+}
+
+func NewApiKeyHandler(service apiKeyService) *apiKeyHandler {
+	return &apiKeyHandler{
+		service: service,
+	}
+}
+
+func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
+
+	var apiKeyRequest createApiKeyRequest
+
+	if err := c.Bind().JSON(&apiKeyRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	apiKey := &ApiKey{
+		Name:       apiKeyRequest.Name,
+		ProjectId: apiKeyRequest.ProjectId,
+		UserId: c.Value("userId").(string),
+	}
+
+	if err := h.service.CreateApiKey(c, apiKey); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "API Key created successfully"})
+}
