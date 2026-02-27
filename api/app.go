@@ -2,9 +2,12 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apikey "github.com/winnerx0/dyno/internal/api_key"
 	"github.com/winnerx0/dyno/internal/auth"
 	"github.com/winnerx0/dyno/internal/config"
 	"github.com/winnerx0/dyno/internal/database"
+	"github.com/winnerx0/dyno/internal/middleware"
+	"github.com/winnerx0/dyno/internal/project"
 	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
 	"github.com/winnerx0/dyno/internal/user"
 )
@@ -31,17 +34,42 @@ func NewServer(cfg config.Config) *Server {
 
 	authhandler := auth.NewAuthHandler(*userService)
 
+	apiRepository := apikey.NewRepository(db)
+
+	apiService := apikey.NewApiKeyService(*apiRepository)
+
+	_ = middleware.NewAuthMiddleware(*apiRepository)
+
+	jwtMiddleware := middleware.NewJwtMiddleware(*userRepository, cfg)
+
+	apiKeyHandler := apikey.NewApiKeyHandler(*apiService)
+
+	
+	projectRepository := project.NewRepository(db)
+
+	projectService := project.NewProjectService(*projectRepository)
+
+	projectHandler := project.NewProjectHandler(*projectService)
+
 	app.Get("/hello", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hey"})
 	})
 
-	v1 := app.Group("api/v1")
+	v1 := app.Group("api/v1", jwtMiddleware.JwtMiddleware)
 
-	userRouter := v1.Group("/users")
+	authRouter := app.Group("/auth")
 
-	userRouter.Post("/register", authhandler.Register)
+	authRouter.Post("/register", authhandler.Register)
 
-	userRouter.Post("/login", authhandler.Login)
+	authRouter.Post("/login", authhandler.Login)
+
+	projectRouter := v1.Group("/projects")
+	
+	projectRouter.Post("/create", projectHandler.CreateProject)
+
+	apiKeyRouter := v1.Group("/api-keys")
+
+	apiKeyRouter.Post("/create", apiKeyHandler.CreateApiKey)
 
 	return &Server{app: app, config: cfg}
 }

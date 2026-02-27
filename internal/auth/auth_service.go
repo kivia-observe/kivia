@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -27,7 +26,7 @@ func NewUserService(userrepo user.Repository, refreshTokenRepo refreshtoken.Repo
 	}
 }
 
-func (s authservice) Register(ctx context.Context, createUserRequest createUserRequest) error {
+func (s authservice) Register(createUserRequest createUserRequest) error {
 
 	if exists := s.userrepo.ExistsByEmail(createUserRequest.Email); exists {
 		return errors.New("ALREADY_EXISTS")
@@ -54,7 +53,7 @@ func (s authservice) Register(ctx context.Context, createUserRequest createUserR
 	return nil
 }
 
-func (s authservice) Login(ctx context.Context, loginRequest LoginRequest) (*AuthResponse, error) {
+func (s authservice) Login(loginRequest LoginRequest) (*AuthResponse, error) {
 
 	user := s.userrepo.FindByEmail(loginRequest.Email)
 

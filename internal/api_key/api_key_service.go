@@ -1,7 +1,6 @@
 package apikey
 
 import (
-	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,7 +14,7 @@ func NewApiKeyService(repo Repository) *apiKeyService {
 	}
 }
 
-func (s apiKeyService) CreateApiKey(c fiber.Ctx, apiKey *ApiKey) error {
+func (s apiKeyService) CreateApiKey(apiKey *ApiKey) error {
 
 	key, err := bcrypt.GenerateFromPassword([]byte(apiKey.Key), bcrypt.DefaultCost)
 	if err != nil {

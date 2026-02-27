@@ -30,7 +30,7 @@ func (m jwtMiddleware) JwtMiddleware(c fiber.Ctx) error {
 	authHeader := c.Get(fiber.HeaderAuthorization)
 
 	if authHeader == "" || authHeader[:7] != "Bearer " {
-		return c.Status(401).JSON("Invalid Authorization Header")
+		return c.Status(401).JSON(fiber.Map{"error": "Missing or invalid Authorization header"})
 	}
 
 	authToken := authHeader[7:]
@@ -48,13 +48,13 @@ func (m jwtMiddleware) JwtMiddleware(c fiber.Ctx) error {
 
 	if err != nil || !token.Valid {
 
-		return c.Status(401).JSON("Invalid Token")
+		return c.Status(401).JSON(fiber.Map{"error": "Invalid Token"})
 	}
 
 	user := m.userRepo.FindById(claims.Subject)
 
 	if user.Id == "" {
-		return c.Status(404).JSON("User not found")
+		return c.Status(404).JSON(fiber.Map{"error": "User not found"})
 	}
 
 	c.Locals("userId", user.Id)

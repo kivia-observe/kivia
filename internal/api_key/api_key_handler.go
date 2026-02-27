@@ -1,6 +1,9 @@
 package apikey
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
+)
 
 type apiKeyHandler struct {
 	service apiKeyService
@@ -21,12 +24,13 @@ func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
 	}
 
 	apiKey := &ApiKey{
-		Name:       apiKeyRequest.Name,
+		Id:        uuid.New().String(),
+		Name:      apiKeyRequest.Name,
 		ProjectId: apiKeyRequest.ProjectId,
-		UserId: c.Value("userId").(string),
+		UserId:    c.Value("userId").(string),
 	}
 
-	if err := h.service.CreateApiKey(c, apiKey); err != nil {
+	if err := h.service.CreateApiKey(apiKey); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

@@ -20,7 +20,7 @@ func (h authhandler) Register(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := h.service.Register(c, userRequest); err != nil {
+	if err := h.service.Register(userRequest); err != nil {
 
 		if err.Error() == "ALREADY_EXISTS" {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User with email already exists"})
@@ -39,7 +39,7 @@ func (h authhandler) Login(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	 response, err := h.service.Login(c, loginRequest);
+	 response, err := h.service.Login(loginRequest);
 
 	if err != nil {
 
