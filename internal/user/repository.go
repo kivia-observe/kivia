@@ -72,18 +72,3 @@ func (r Repository) FindByEmail(email string) User {
 
 	return user
 }
-
-func (r Repository) FindById(id string) User {
-
-	var user User 
-
-	query := `
-		SELECT id, name, email, password, joined_at FROM users
-		WHERE id = $1
-	`
-
-	row := r.db.QueryRow(context.Background(), query, id)
-	row.Scan(&user.Id, &user.Name, &user.Email,&user.Password, &user.JoinedAt)
-
-	return user
-}

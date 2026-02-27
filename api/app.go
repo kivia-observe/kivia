@@ -29,7 +29,7 @@ func NewServer(cfg config.Config) *Server {
 
 	userService := auth.NewUserService(*userRepository, *refreshTokenRepository, cfg)
 
-	authhandler := auth.NewAuthHandler(*userService)
+	userHandler := auth.NewUserHandler(*userService)
 
 	app.Get("/hello", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hey"})
@@ -39,9 +39,9 @@ func NewServer(cfg config.Config) *Server {
 
 	userRouter := v1.Group("/users")
 
-	userRouter.Post("/register", authhandler.Register)
+	userRouter.Post("/register", userHandler.Register)
 
-	userRouter.Post("/login", authhandler.Login)
+	userRouter.Post("/login", userHandler.Login)
 
 	return &Server{app: app, config: cfg}
 }
