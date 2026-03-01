@@ -14,20 +14,29 @@ func NewApiKeyService(repo Repository) *apiKeyService {
 	}
 }
 
-func (s apiKeyService) CreateApiKey(apiKey *ApiKey) error {
+func (s apiKeyService) CreateApiKey(apiKey *ApiKey) (createApiKeyResponse, error) {
 
-	key, err := bcrypt.GenerateFromPassword([]byte(apiKey.Key), bcrypt.DefaultCost)
+	key, err := generateAPIKey()
+
 	if err != nil {
-		return err
+		return createApiKeyResponse{}, err
 	}
 
-	apiKey.Key = string(key)
+	hashedKey, err := bcrypt.GenerateFromPassword([]byte(key), bcrypt.DefaultCost)
+	if err != nil {
+		return createApiKeyResponse{}, err
+	}
+
+	apiKey.Key = string(hashedKey)
 
 	err = s.repo.Save(*apiKey)
 
 	if err != nil {
-		return err
+		return createApiKeyResponse{}, err
 	}
 
-	return nil
+	return createApiKeyResponse{
+		Message: "API key created successfully",
+		ApiKey: key,
+	}, nil
 }

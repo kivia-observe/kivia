@@ -30,9 +30,11 @@ func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
 		UserId:    c.Value("userId").(string),
 	}
 
-	if err := h.service.CreateApiKey(apiKey); err != nil {
+	response, err := h.service.CreateApiKey(apiKey)
+
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "API Key created successfully"})
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
