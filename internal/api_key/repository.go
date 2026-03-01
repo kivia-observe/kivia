@@ -41,3 +41,59 @@ func (r Repository) FindByKey(hashedKey string) (ApiKey, error) {
 
 	return apiKey, err
 }
+
+func (r Repository) FindById(id string) (ApiKey, error) {
+
+	var apiKey ApiKey 
+
+		query := `
+		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE id = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, id)
+
+	err := row.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.UserId, &apiKey.ProjectId, &apiKey.Revoked, &apiKey.CreatedAt)
+
+	return apiKey, err
+}
+
+func (r Repository) FindAllByUserId(userId string) ([]ApiKey, error) {
+
+	var apiKeys []ApiKey
+
+	query := `
+		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE revoked = TRUE AND user_id = $1
+	`
+
+	rows, err := r.db.Query(context.Background(), query, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var apiKey ApiKey
+
+		err := rows.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.UserId, &apiKey.ProjectId, &apiKey.Revoked, &apiKey.CreatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		apiKeys = append(apiKeys, apiKey)
+	}
+
+	return apiKeys, err
+}
+
+func (r Repository) RevokeApiKey(id string) error {
+
+	query := `
+		UPDATE api_keys SET revoked = true WHERE id = $1
+	`
+	_, err := r.db.Exec(context.Background(), query, id)
+
+	return err
+}

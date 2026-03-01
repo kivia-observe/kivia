@@ -71,6 +71,10 @@ func NewServer(cfg config.Config) *Server {
 
 	apiKeyRouter.Post("/create", apiKeyHandler.CreateApiKey)
 
+	apiKeyRouter.Get("/all", apiKeyHandler.GetAllApiKeys)
+
+	apiKeyRouter.Patch("/revoke/:id", apiKeyHandler.RevokeApiKey)
+
 	return &Server{app: app, config: cfg}
 }
 

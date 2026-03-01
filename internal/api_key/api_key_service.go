@@ -40,3 +40,24 @@ func (s apiKeyService) CreateApiKey(apiKey *ApiKey) (createApiKeyResponse, error
 		ApiKey: key,
 	}, nil
 }
+
+func (s apiKeyService) GetAllApiKeys(userId string) ([]ApiKey, error) {
+	return s.repo.FindAllByUserId(userId)
+}
+
+func (s apiKeyService) RevokeApiKey(apiKeyId string, userId string) error {
+	apiKey, err := s.repo.FindById(apiKeyId)
+	if err != nil {
+		return err
+	}
+
+	if apiKey.Id == "" {
+		return ErrApiKeyNotFound
+	}
+
+	if apiKey.UserId != userId {
+		return ErrUnauthorized
+	}
+
+	return s.repo.RevokeApiKey(apiKeyId)
+}
