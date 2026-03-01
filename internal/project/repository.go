@@ -35,3 +35,33 @@ func (r Repository) Save(project Project) error {
 
 	return err
 }
+
+func (r Repository) FindById(id string) (Project, error) {
+
+	var project Project
+
+	query := `
+	SELECT id, name, api_keys, user_id, created_at FROM projects WHERE id = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, id)
+
+	err := row.Scan(&project.Id, &project.Name, &project.ApiKeys, &project.UserId, &project.CreatedAt)
+
+	return project, err
+}
+
+func (r Repository) ExistsById(id string) (bool, error) {
+
+	var exists bool
+
+	query := `
+	SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1)
+	`
+
+	row := r.db.QueryRow(context.Background(), query, id)
+
+	err := row.Scan(&exists)
+
+	return exists, err
+}

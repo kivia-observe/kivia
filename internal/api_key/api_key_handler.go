@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/winnerx0/dyno/internal/utils"
 )
 
 type apiKeyHandler struct {
@@ -45,9 +46,15 @@ func (h apiKeyHandler) GetAllApiKeys(c fiber.Ctx) error {
 
 	userId := c.Value("userId").(string)
 
-	apiKeys, err := h.service.GetAllApiKeys(userId)
+	projectId := c.Params("projectId")
+
+	apiKeys, err := h.service.GetAllApiKeysByProject(userId, projectId)
 
 	if err != nil {
+
+		if errors.Is(err, utils.ErrProjectNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -57,16 +64,17 @@ func (h apiKeyHandler) GetAllApiKeys(c fiber.Ctx) error {
 func (h apiKeyHandler) RevokeApiKey(c fiber.Ctx) error {
 
 	apiKeyId := c.Params("id")
+
 	userId := c.Value("userId").(string)
 
 	err := h.service.RevokeApiKey(apiKeyId, userId)
 
 	if err != nil {
 
-		if errors.Is(err, ErrApiKeyNotFound) {
+		if errors.Is(err, utils.ErrApiKeyNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 		}
-		if errors.Is(err, ErrUnauthorized) {
+		if errors.Is(err, utils.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

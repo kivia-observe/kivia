@@ -29,9 +29,9 @@ func (r Repository) Save(apiKey ApiKey) error {
 
 func (r Repository) FindByKey(hashedKey string) (ApiKey, error) {
 
-	var apiKey ApiKey 
+	var apiKey ApiKey
 
-		query := `
+	query := `
 		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE key = $1
 	`
 
@@ -44,9 +44,9 @@ func (r Repository) FindByKey(hashedKey string) (ApiKey, error) {
 
 func (r Repository) FindById(id string) (ApiKey, error) {
 
-	var apiKey ApiKey 
+	var apiKey ApiKey
 
-		query := `
+	query := `
 		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE id = $1
 	`
 
@@ -57,15 +57,15 @@ func (r Repository) FindById(id string) (ApiKey, error) {
 	return apiKey, err
 }
 
-func (r Repository) FindAllByUserId(userId string) ([]ApiKey, error) {
+func (r Repository) FindAllByUserIdAndProjectId(userId string, projectId string) ([]ApiKey, error) {
 
-	var apiKeys []ApiKey
+	apiKeys := make([]ApiKey, 0)
 
 	query := `
-		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE revoked = TRUE AND user_id = $1
+		SELECT id, name, key, created_at FROM api_keys WHERE revoked = FALSE AND user_id = $1 AND project_id = $2
 	`
 
-	rows, err := r.db.Query(context.Background(), query, userId)
+	rows, err := r.db.Query(context.Background(), query, userId, projectId)
 
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (r Repository) FindAllByUserId(userId string) ([]ApiKey, error) {
 	for rows.Next() {
 		var apiKey ApiKey
 
-		err := rows.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.UserId, &apiKey.ProjectId, &apiKey.Revoked, &apiKey.CreatedAt)
+		err := rows.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.CreatedAt)
 
 		if err != nil {
 			return nil, err

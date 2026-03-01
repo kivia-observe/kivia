@@ -4,17 +4,17 @@ import "time"
 
 type ApiKey struct {
 
-	Id string
+	Id string `json:"id"`
 
-	Name string
+	Name string `json:"name"`
 
-	Key string
+	Key string `json:"key"`
 
-	UserId string
+	UserId string `json:"user_id,omitempty"`
 
-	ProjectId string 
+	ProjectId string `json:"project_id,omitempty"`
 
-	Revoked bool
+	Revoked bool `json:"revoked,omitempty"`
 
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
 }

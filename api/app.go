@@ -32,24 +32,24 @@ func NewServer(cfg config.Config) *Server {
 
 	userService := auth.NewUserService(*userRepository, *refreshTokenRepository, cfg)
 
-	authhandler := auth.NewAuthHandler(*userService)
+	projectRepository := project.NewRepository(db)
+	
+	projectService := project.NewProjectService(*projectRepository)
 
+	projectHandler := project.NewProjectHandler(*projectService)
+	
+	authhandler := auth.NewAuthHandler(*userService)
+	
 	apiRepository := apikey.NewRepository(db)
 
-	apiService := apikey.NewApiKeyService(*apiRepository)
+	apiService := apikey.NewApiKeyService(*apiRepository, *projectRepository)
 
 	_ = middleware.NewAuthMiddleware(*apiRepository)
 
 	jwtMiddleware := middleware.NewJwtMiddleware(*userRepository, cfg)
 
 	apiKeyHandler := apikey.NewApiKeyHandler(*apiService)
-
 	
-	projectRepository := project.NewRepository(db)
-
-	projectService := project.NewProjectService(*projectRepository)
-
-	projectHandler := project.NewProjectHandler(*projectService)
 
 	app.Get("/hello", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hey"})
@@ -71,7 +71,7 @@ func NewServer(cfg config.Config) *Server {
 
 	apiKeyRouter.Post("/create", apiKeyHandler.CreateApiKey)
 
-	apiKeyRouter.Get("/all", apiKeyHandler.GetAllApiKeys)
+	apiKeyRouter.Get("/all/:projectId", apiKeyHandler.GetAllApiKeys)
 
 	apiKeyRouter.Patch("/revoke/:id", apiKeyHandler.RevokeApiKey)
 
