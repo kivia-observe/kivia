@@ -1,0 +1,1 @@
+DROP TRIGGER revoke_api_trigger ON api_keys;
