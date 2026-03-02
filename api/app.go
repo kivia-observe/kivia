@@ -34,6 +34,10 @@ func NewServer(cfg config.Config) *Server {
 
 	rabbitMQClient := rabbitmq.NewRabbitMQClient(cfg.RabbitMQConnectionUrl)
 
+	if err := rabbitMQClient.SetupQueues(); err != nil {
+		panic(err)
+	}
+
 	logRepository := log.NewRepository(db)
 
 	logService := log.NewLogService(*logRepository, *rabbitMQClient)

@@ -36,23 +36,9 @@ func NewRabbitMQClient(rabbitMQConnectionUrl string) *RabbitMQClient {
 
 func (r *RabbitMQClient) ConsumeRabbitMQQueue(queue_name string) (<-chan amqp.Delivery, error) {
 
-	q, err := r.Channel.QueueDeclare(
-		queue_name, // name of the queue
-		true,       // durable
-		false,      // delete when unused
-		false,      // exclusive
-		false,      // no-wait
-		nil,        // arguments
-	)
-
-	if err != nil {
-		log.Printf("Failed to declare a RabbitMQ queue: %s", err)
-		return nil, err
-	}
-
 	// SUBSCRIBE TO THE QUEUE
 	msgs, err := r.Channel.Consume(
-		q.Name, // queue
+		queue_name, // queue
 		"",     // consumer
 		true,   // auto-ack
 		false,  // exclusive
