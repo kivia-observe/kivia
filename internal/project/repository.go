@@ -65,3 +65,18 @@ func (r Repository) ExistsById(id string) (bool, error) {
 
 	return exists, err
 }
+
+func (r Repository) FindProjectIdByApiKey(apiKey string) (string, error) {
+
+	var projectId string
+
+	query := `
+	SELECT projects.id FROM projects JOIN api_keys ON api_keys.project_id = projects.id WHERE api_keys.key = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, apiKey)
+
+	err := row.Scan(&projectId)
+
+	return projectId, err
+}

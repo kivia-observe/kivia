@@ -27,15 +27,15 @@ func (r Repository) Save(apiKey ApiKey) error {
 	return err
 }
 
-func (r Repository) FindByKey(hashedKey string) (ApiKey, error) {
+func (r Repository) FindByProjectId(projectId string) (ApiKey, error) {
 
 	var apiKey ApiKey
 
 	query := `
-		SELECT id, name, key, user_id, project_id, revoked, created_at FROM api_keys WHERE key = $1
+		SELECT id, name, key, user_id, project_Id, revoked, created_at FROM api_keys WHERE revoked = false AND project_Id = $1
 	`
 
-	row := r.db.QueryRow(context.Background(), query, hashedKey)
+	row := r.db.QueryRow(context.Background(), query, projectId)
 
 	err := row.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.UserId, &apiKey.ProjectId, &apiKey.Revoked, &apiKey.CreatedAt)
 

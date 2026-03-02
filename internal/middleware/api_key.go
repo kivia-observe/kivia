@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 
 	"github.com/gofiber/fiber/v3"
 	apikey "github.com/winnerx0/dyno/internal/api_key"
@@ -11,43 +12,41 @@ type apiKeyMiddleware struct {
 	repo apikey.Repository
 }
 
-func NewAuthMiddleware(repo apikey.Repository) *apiKeyMiddleware{
+func NewApiKeyMiddleware(repo apikey.Repository) *apiKeyMiddleware {
 	return &apiKeyMiddleware{
 		repo: repo,
 	}
 }
- 
-func (m apiKeyMiddleware) APiKeyMiddleware(c fiber.Ctx) error {
+
+func (m apiKeyMiddleware) ApiKeyMiddleware(c fiber.Ctx) error {
 
 	apiKey := c.Get("x-dyno-api-key")
 
+	projectId := c.Params("projectID")
+
 	if apiKey == "" {
-		return c.Status(403).JSON("Invaild API Key")
+		return c.Status(403).JSON(fiber.Map{"error": "Invaild API Key"})
 	}
 
-	hashedKey := hashApiKey(apiKey)
-
-	key, err := m.repo.FindByKey(hashedKey)
+	key, err := m.repo.FindByProjectId(projectId)
 
 	if err != nil {
-		return c.Status(403).JSON("Invaild API Key")
+		log.Println("Error ", err)
+		return c.Status(403).JSON(fiber.Map{"error": "Invaild API Key"})
 	}
 
 	if key.Id == "" {
-		return c.Status(403).JSON("Invaild API Key")
+		return c.Status(403).JSON(fiber.Map{"error": "Invaild API Key"})
 	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(key.Key), []byte(apiKey))
+
+	if err != nil {
+		return c.Status(403).JSON(fiber.Map{"error": "Invaild API Key"})
+	}
+
+	c.Locals("apiKey", key)
 
 	return c.Next()
 
-}
-
-func hashApiKey(apiKey string) string {
-	
-	hashedKey, err := bcrypt.GenerateFromPassword([]byte(apiKey), bcrypt.DefaultCost)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return string(hashedKey)
 }

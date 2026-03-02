@@ -14,6 +14,8 @@ type Config struct {
 	JwtAccessTokenSecret string
 
 	JwtRefreshTokenSecret string
+	
+	RabbitMQConnectionUrl string
 }
 
 func Load() *Config {
@@ -23,6 +25,7 @@ func Load() *Config {
 		Port:                  getEnv("PORT"),
 		JwtAccessTokenSecret:  getEnv("JWT_ACCESS_TOKEN_SECRET"),
 		JwtRefreshTokenSecret: getEnv("JWT_REFRESH_TOKEN_SECRET"),
+		RabbitMQConnectionUrl: getEnv("RABBITMQ_CONNECTION_URL"),
 	}
 
 }

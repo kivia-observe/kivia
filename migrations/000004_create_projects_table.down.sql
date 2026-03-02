@@ -1,1 +1,1 @@
-TRUNCATE TABLE projects;
+DROP TABLE projects;
