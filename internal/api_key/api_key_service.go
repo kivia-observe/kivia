@@ -70,7 +70,7 @@ func (s apiKeyService) RevokeApiKey(apiKeyId string, userId string) error {
 	if err != nil {
 		return err
 	}
-
+	
 	if apiKey.Id == "" {
 		return utils.ErrApiKeyNotFound
 	}

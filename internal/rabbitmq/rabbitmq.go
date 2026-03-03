@@ -54,3 +54,14 @@ func (r *RabbitMQClient) ConsumeRabbitMQQueue(queue_name string) (<-chan amqp.De
 
 	return msgs, nil
 }
+
+func (r *RabbitMQClient) Close(){
+
+	if err := r.Channel.Close(); err != nil {
+		log.Printf("Failed to close RabbitMQ channel: %s", err)
+	}
+
+	if err := r.Conn.Close(); err != nil {
+		log.Printf("Failed to close RabbitMQ connection: %s", err)
+	}
+}

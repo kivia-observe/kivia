@@ -24,15 +24,13 @@ type Server struct {
 	logService log.Logservice
 }
 
-func NewServer(cfg config.Config) *Server {
+func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
 
 	app := fiber.New(fiber.Config{
 		AppName: "Dyno",
 	})
 
 	db := database.Connect(cfg.DBUrl)
-
-	rabbitMQClient := rabbitmq.NewRabbitMQClient(cfg.RabbitMQConnectionUrl)
 
 	if err := rabbitMQClient.SetupQueues(); err != nil {
 		panic(err)
