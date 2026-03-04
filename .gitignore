@@ -1,1 +1,3 @@
-.env
+dyno/.env.local
+
+dyno/.env.dev
