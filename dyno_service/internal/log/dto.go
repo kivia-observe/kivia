@@ -14,5 +14,5 @@ type createLogRequest struct {
 
 	Timestamp time.Time `json:"timestamp"`
 	
-	Latency string `json:"latency"`
+	Latency int `json:"latency"`
 }
