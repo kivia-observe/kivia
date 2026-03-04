@@ -1,3 +1,7 @@
-dyno/.env.local
+dyno_service/.env.local
 
-dyno/.env.dev
+dyno_service/.env.dev
+
+email_service/.env.local
+
+email_service/.env.dev
