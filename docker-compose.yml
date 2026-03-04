@@ -1,0 +1,53 @@
+services:
+
+  dyno_service:
+    build: './dyno'
+    ports:
+      - '8081:8081'
+    container_name: dyno_service
+    env_file: 
+      - ./dyno/.env.dev
+    environment:
+        RABBITMQ_HOST: rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+  email_service:
+    build: './email_service'
+    container_name: email_service
+  nginx:
+    build: './nginx'
+    ports:
+      - '8080:8080'
+    depends_on:
+      - dyno_service
+      - email_service
+  rabbitmq:
+    image: 'rabbitmq:latest'
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 5s
+      retries: 5
+
+  postgres:
+    image: 'postgres:18.3-alpine3.23'
+    ports:
+      - '5000:5432'
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dyno
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:
