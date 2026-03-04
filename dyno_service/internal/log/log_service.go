@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	logger "log"
@@ -33,13 +34,15 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, projectId strin
 		return err
 	}
 
+	latency := fmt.Sprintf("%d ms", createLogRequest.Latency)
+
 	log := Log{
 		Id:        createLogRequest.Id,
 		Path:      createLogRequest.Path,
 		IPAddress: createLogRequest.IPAddress,
 		Status:    createLogRequest.Status,
 		Timestamp: createLogRequest.Timestamp,
-		Latency:   createLogRequest.Latency,
+		Latency:   latency,
 		ProjectId: projectId,
 	}
 

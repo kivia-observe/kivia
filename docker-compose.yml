@@ -1,12 +1,12 @@
 services:
 
   dyno_service:
-    build: './dyno'
+    build: './dyno_service'
     ports:
       - '8081:8081'
     container_name: dyno_service
     env_file: 
-      - ./dyno/.env.dev
+      - ./dyno_service/.env.dev
     environment:
         RABBITMQ_HOST: rabbitmq:5672
     depends_on:
