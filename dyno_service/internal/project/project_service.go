@@ -1,10 +1,10 @@
 package project
 
 type projectservice struct {
-	repo Repository
+	repo *Repository
 }
 
-func NewProjectService(repo Repository) *projectservice {
+func NewProjectService(repo *Repository) *projectservice {
 	return &projectservice{
 		repo: repo,
 	}

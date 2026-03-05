@@ -1,19 +1,20 @@
 package apikey
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"log"
 
 	"github.com/winnerx0/dyno/internal/project"
 	"github.com/winnerx0/dyno/internal/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type apiKeyService struct {
-	repo Repository
-	projectRepo project.Repository
+	repo *Repository
+	projectRepo *project.Repository
 }
 
-func NewApiKeyService(repo Repository, projectRepo project.Repository) *apiKeyService {
+func NewApiKeyService(repo *Repository, projectRepo *project.Repository) *apiKeyService {
 	return &apiKeyService{
 		repo: repo,
 		projectRepo: projectRepo,
@@ -28,12 +29,9 @@ func (s apiKeyService) CreateApiKey(apiKey *ApiKey) (createApiKeyResponse, error
 		return createApiKeyResponse{}, err
 	}
 
-	hashedKey, err := bcrypt.GenerateFromPassword([]byte(key), bcrypt.DefaultCost)
-	if err != nil {
-		return createApiKeyResponse{}, err
-	}
+	hash := sha256.Sum256([]byte(key))
 
-	apiKey.Key = string(hashedKey)
+	apiKey.Key = hex.EncodeToString(hash[:])
 
 	err = s.repo.Save(*apiKey)
 

@@ -14,7 +14,7 @@ func NewLogHandler(service Logservice) *loghandler {
 
 func (h loghandler) CreateLog(c fiber.Ctx) error {
 	
-	projectId := c.Params("projectId")
+	apiKey := c.Get("X-dyno-api-key")
 
 	var createLogRequest createLogRequest
 
@@ -22,7 +22,7 @@ func (h loghandler) CreateLog(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := h.service.CreateLog(createLogRequest, projectId); err != nil {
+	if err := h.service.CreateLog(createLogRequest, apiKey); err != nil {
 	
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

@@ -16,12 +16,12 @@ import (
 )
 
 type authservice struct {
-	userrepo         user.Repository
-	refreshTokenRepo refreshtoken.Repository
+	userrepo         *user.Repository
+	refreshTokenRepo *refreshtoken.Repository
 	config           config.Config
 }
 
-func NewUserService(userrepo user.Repository, refreshTokenRepo refreshtoken.Repository, config config.Config) *authservice {
+func NewUserService(userrepo *user.Repository, refreshTokenRepo *refreshtoken.Repository, config config.Config) *authservice {
 	return &authservice{
 		userrepo:         userrepo,
 		refreshTokenRepo: refreshTokenRepo,

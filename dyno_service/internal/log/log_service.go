@@ -2,6 +2,8 @@ package log
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,32 +11,45 @@ import (
 	logger "log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/winnerx0/dyno/internal/project"
+	apikey "github.com/winnerx0/dyno/internal/api_key"
 	"github.com/winnerx0/dyno/internal/rabbitmq"
 )
 
 type Logservice struct {
-	repo           Repository
-	projectRepo    project.Repository
-	rabbitMQClient rabbitmq.RabbitMQClient
+	repo           *Repository
+	apiKeyRepo     *apikey.Repository
+	rabbitMQClient *rabbitmq.RabbitMQClient
 }
 
-func NewLogService(repo Repository, rabbitMQClient rabbitmq.RabbitMQClient) *Logservice {
+func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClient *rabbitmq.RabbitMQClient) *Logservice {
 	return &Logservice{
 		repo:           repo,
+		apiKeyRepo: apiKeyRepo,
 		rabbitMQClient: rabbitMQClient,
 	}
 }
 
-func (s Logservice) CreateLog(createLogRequest createLogRequest, projectId string) error {
-
+func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) error {
+	
 	queue, err := s.rabbitMQClient.Channel.QueueDeclare("log_queue", true, false, false, false, nil)
 
 	if err != nil {
 		return err
 	}
 
+	apiKeyHash := sha256.Sum256([]byte(apiKey))
+
+	apiKeyHex := hex.EncodeToString(apiKeyHash[:])
+
+	projectId, err := s.apiKeyRepo.FindProjectIdByKey(apiKeyHex)
+
+	if err != nil {
+		return err
+	}
+
 	latency := fmt.Sprintf("%d ms", createLogRequest.Latency)
+
+	fmt.Println("latency", latency)
 
 	log := Log{
 		Id:        createLogRequest.Id,

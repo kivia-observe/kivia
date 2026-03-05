@@ -2,6 +2,7 @@ package apikey
 
 import (
 	"context"
+	_"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -16,18 +17,18 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	}
 }
 
-func (r Repository) Save(apiKey ApiKey) error {
+func (r *Repository) Save(apiKey ApiKey) error {
 
 	query := `
-		INSERT INTO api_keys (id, name, key, user_id, project_id, revoked) VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO api_keys (name, key, user_id, project_id, revoked) VALUES ($1, $2, $3, $4, $5)
 	`
 
-	_, err := r.db.Exec(context.Background(), query, apiKey.Id, apiKey.Name, apiKey.Key, apiKey.UserId, apiKey.ProjectId, apiKey.Revoked)
+	_, err := r.db.Exec(context.Background(), query, apiKey.Name, apiKey.Key, apiKey.UserId, apiKey.ProjectId, apiKey.Revoked)
 
 	return err
 }
 
-func (r Repository) FindByProjectId(projectId string) (ApiKey, error) {
+func (r *Repository) FindByProjectId(projectId string) (ApiKey, error) {
 
 	var apiKey ApiKey
 
@@ -42,7 +43,7 @@ func (r Repository) FindByProjectId(projectId string) (ApiKey, error) {
 	return apiKey, err
 }
 
-func (r Repository) FindById(id string) (ApiKey, error) {
+func (r *Repository) FindById(id string) (ApiKey, error) {
 
 	var apiKey ApiKey
 
@@ -57,7 +58,7 @@ func (r Repository) FindById(id string) (ApiKey, error) {
 	return apiKey, err
 }
 
-func (r Repository) FindAllByUserIdAndProjectId(userId string, projectId string) ([]ApiKey, error) {
+func (r *Repository) FindAllByUserIdAndProjectId(userId string, projectId string) ([]ApiKey, error) {
 
 	apiKeys := make([]ApiKey, 0)
 
@@ -88,7 +89,7 @@ func (r Repository) FindAllByUserIdAndProjectId(userId string, projectId string)
 	return apiKeys, err
 }
 
-func (r Repository) RevokeApiKey(id string) error {
+func (r *Repository) RevokeApiKey(id string) error {
 
 	query := `
 		UPDATE api_keys SET revoked = true WHERE id = $1
@@ -96,4 +97,19 @@ func (r Repository) RevokeApiKey(id string) error {
 	_, err := r.db.Exec(context.Background(), query, id)
 
 	return err
+}
+
+func (r *Repository) FindProjectIdByKey(apiKey string) (string, error) {
+
+	var projectId *string
+
+	query := `
+	SELECT project_id FROM api_keys WHERE key = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, apiKey)
+
+	err := row.Scan(&projectId)
+	
+	return *projectId, err
 }
