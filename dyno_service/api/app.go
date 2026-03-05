@@ -36,31 +36,29 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 		panic(err)
 	}
 
-	logRepository := log.NewRepository(db)
-
-	logService := log.NewLogService(*logRepository, *rabbitMQClient)
-
-	logHandler := log.NewLogHandler(*logService)
-
-	userRepository := user.NewRepository(db)
-
-	refreshTokenRepository := refreshtoken.NewRepository(db)
-
-	userService := auth.NewUserService(*userRepository, *refreshTokenRepository, cfg)
-
 	projectRepository := project.NewRepository(db)
 
-	projectService := project.NewProjectService(*projectRepository)
+	projectService := project.NewProjectService(projectRepository)
 
 	projectHandler := project.NewProjectHandler(*projectService)
 
-	authhandler := auth.NewAuthHandler(*userService)
+	apiKeyRepository := apikey.NewRepository(db)
 
-	apiRepository := apikey.NewRepository(db)
+	apiService := apikey.NewApiKeyService(apiKeyRepository, projectRepository)
 
-	apiService := apikey.NewApiKeyService(*apiRepository, *projectRepository)
+	apiKeyMiddlware := middleware.NewApiKeyMiddleware(apiKeyRepository)
 
-	apiKeyMiddlware := middleware.NewApiKeyMiddleware(*apiRepository)
+	logRepository := log.NewRepository(db)
+
+	logService := log.NewLogService(logRepository, apiKeyRepository, rabbitMQClient)
+
+	logHandler := log.NewLogHandler(*logService)
+
+	refreshTokenRepository := refreshtoken.NewRepository(db)
+
+	userRepository := user.NewRepository(db)
+
+	userService := auth.NewUserService(userRepository, refreshTokenRepository, cfg)
 
 	_ = middleware.NewJwtMiddleware(*userRepository, cfg)
 
@@ -70,10 +68,14 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 		return c.JSON(fiber.Map{"message": "Hey"})
 	})
 
-	v1 := app.Group("api/v1", middleware.AuthMiddlware)
+	api := app.Group("/api")
+
+	v1 := api.Group("/v1", middleware.AuthMiddlware)
 
 	// auth routes
 	authRouter := app.Group("/auth")
+
+	authhandler := auth.NewAuthHandler(*userService)
 
 	authRouter.Post("/register", authhandler.Register)
 
@@ -100,11 +102,11 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	apiKeyRouter.Patch("/revoke/:id", apiKeyHandler.RevokeApiKey)
 
 	// log routes
-	logRouter := v1.Group("/logs/:projectId", apiKeyMiddlware.ApiKeyMiddleware)
+	logRouter := api.Group("/logs", apiKeyMiddlware.ApiKeyMiddleware)
 
 	logRouter.Post("/create", logHandler.CreateLog)
 
-	logRouter.Get("/all", logHandler.GetLogsByProjectId)
+	logRouter.Get("/all/:projectId", logHandler.GetLogsByProjectId)
 
 	return &Server{app: app, config: cfg, logService: *logService}
 }

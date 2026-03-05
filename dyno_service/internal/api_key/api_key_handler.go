@@ -2,9 +2,7 @@ package apikey
 
 import (
 	"errors"
-
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/uuid"
 	"github.com/winnerx0/dyno/internal/utils"
 )
 
@@ -27,7 +25,6 @@ func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
 	}
 
 	apiKey := &ApiKey{
-		Id:        uuid.New().String(),
 		Name:      apiKeyRequest.Name,
 		ProjectId: apiKeyRequest.ProjectId,
 		UserId:    c.Value("userId").(string),
