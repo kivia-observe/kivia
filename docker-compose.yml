@@ -13,7 +13,7 @@ services:
       rabbitmq:
         condition: service_healthy
       postgres:
-        condition: service_started
+        condition: service_healthy
   email_service:
     build: './email_service'
     container_name: email_service
@@ -49,5 +49,11 @@ services:
       POSTGRES_DB: dyno
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 volumes:
   db_data:
