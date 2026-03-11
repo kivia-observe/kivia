@@ -14,11 +14,9 @@ type Client struct {
 	BaseURL    string
 	ApiKey     string
 	HttpClient *http.Client
-	Request    *http.Request
-	Response   *http.Response
 }
 
-func NewClient(apiKey string, request *http.Request, response *http.Response) *Client {
+func NewClient(apiKey string) *Client {
 	client := &Client{
 		BaseURL:    "http://localhost:80/api",
 		ApiKey:     apiKey,
@@ -32,7 +30,7 @@ func (c *Client) NewLog(next http.Handler) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// star time for the request
+		// start time for the request
 		start := time.Now()
 		
 		rw := &ResponseWriteWrapper{

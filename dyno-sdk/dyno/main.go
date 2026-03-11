@@ -11,25 +11,7 @@ import (
 
 func main() {
 
-	httpc := http.Client{}
-
-	// start := time.Now()
-
-	req, err := http.NewRequest(http.MethodGet, "https://jsonplaceholder.typicode.com/todos/1", nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res, err := httpc.Do(req)
-
-	// endTime := time.Since(start)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	client := dynosdk.NewClient("dyno_NHLfFHXlOdZHmJVL8gecgPcU0q5FvUbOchM0tvqt2eM", req, res)
+	client := dynosdk.NewClient("dyno_NHLfFHXlOdZHmJVL8gecgPcU0q5FvUbOchM0tvqt2eM")
 
 	http.HandleFunc("/", client.NewLog(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
