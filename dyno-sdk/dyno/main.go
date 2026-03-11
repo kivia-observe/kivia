@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	_ "time"
 
 	dynosdk "github.com/winnerx0/dyno-sdk"
 )
@@ -12,7 +13,7 @@ func main() {
 
 	httpc := http.Client{}
 
-	start := time.Now()
+	// start := time.Now()
 
 	req, err := http.NewRequest(http.MethodGet, "https://jsonplaceholder.typicode.com/todos/1", nil)
 
@@ -22,18 +23,23 @@ func main() {
 
 	res, err := httpc.Do(req)
 
-	endTime := time.Since(start)
+	// endTime := time.Since(start)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	client := dynosdk.NewClient("dyno_LRBG46d1I3FoPZrfH0nNI0iNmwWCANm7bfGK8Scbiw0", req, res)
+	client := dynosdk.NewClient("dyno_NHLfFHXlOdZHmJVL8gecgPcU0q5FvUbOchM0tvqt2eM", req, res)
 
-	err = client.NewLog(endTime)
+	http.HandleFunc("/", client.NewLog(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	if err != nil {
-		log.Fatal(err)
-	}
+		time.Sleep(time.Second * 5)
+		w.WriteHeader(500)
+		w.Write([]byte("Hey this is a post"))
+		
+	})))
+
+	log.Println("listening to test server")
+	http.ListenAndServe(":3000", nil)
 
 }
