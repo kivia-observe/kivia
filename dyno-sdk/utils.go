@@ -1,16 +1,11 @@
 package dynosdk
 
-import (
-	"io"
-	"net/http"
-)
+func (w *ResponseWriteWrapper) Write(b []byte) (int, error) {
+    w.body.Read(b)
+    return w.ResponseWriter.Write(b)
+}
 
-func getPublicIP(httpClient *http.Client) string {
-    res, err := httpClient.Get("https://api.ipify.org")
-    if err != nil {
-        return ""
-    }
-    defer res.Body.Close()
-    ip, _ := io.ReadAll(res.Body)
-    return string(ip)
+func (w *ResponseWriteWrapper) WriteHeader(statusCode int) {
+    w.statusCode = statusCode
+    w.ResponseWriter.WriteHeader(statusCode)
 }
