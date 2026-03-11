@@ -30,10 +30,11 @@ func (r Repository) Save(log Log) error {
 func (r Repository) GetLogsByProjectId(projectId string, startDate *string, endDate *string) ([]Log, error) {
 
 	query := `
-	SELECT path, latency, status, ip_address, timestamp FROM logs
+	SELECT id, path, latency, status, ip_address, timestamp FROM logs
 	WHERE project_id = $1
-	AND ($1::timestamp IS NULL OR created_at >= $1)
-	AND ($2::timestamp IS NULL OR created_at <= $2)
+	AND ($2::timestamp IS NULL OR timestamp >= $2)
+	AND ($3::timestamp IS NULL OR timestamp <= $3)
+	ORDER BY timestamp DESC
 	`
 
 	rows, err := r.db.Query(context.Background(), query, projectId, startDate, endDate)
@@ -48,7 +49,7 @@ func (r Repository) GetLogsByProjectId(projectId string, startDate *string, endD
 
 	for rows.Next() {
 		var log Log
-		err := rows.Scan(&log.Path, &log.Latency, &log.Status, &log.IPAddress, &log.Timestamp)
+		err := rows.Scan(&log.Id, &log.Path, &log.Latency, &log.Status, &log.IPAddress, &log.Timestamp)
 
 		if err != nil {
 			return nil, err
