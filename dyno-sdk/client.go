@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-type Client struct {
-	BaseURL    string
-	ApiKey     string
-	HttpClient *http.Client
-}
-
 func NewClient(apiKey string) *Client {
 	client := &Client{
 		BaseURL:    "http://localhost:80/api",
@@ -84,7 +78,5 @@ func (c *Client) NewLog(next http.Handler) http.HandlerFunc {
 			body, _ := io.ReadAll(res.Body)
 			logger.Println(string(body))
 		}
-
-		logger.Println("Logged successfully", rw.statusCode)
 	}
 }
