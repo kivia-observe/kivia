@@ -1,7 +1,7 @@
 package dynosdk
 
 func (w *ResponseWriteWrapper) Write(b []byte) (int, error) {
-    w.body.Read(b)
+    w.body.Write(b)
     return w.ResponseWriter.Write(b)
 }
 
