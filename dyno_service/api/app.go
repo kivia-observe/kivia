@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gofiber/fiber/v3"
+	_"github.com/gofiber/fiber/v3/middleware/cors"
 	apikey "github.com/winnerx0/dyno/internal/api_key"
 	"github.com/winnerx0/dyno/internal/auth"
 	"github.com/winnerx0/dyno/internal/config"
@@ -64,13 +65,25 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	apiKeyHandler := apikey.NewApiKeyHandler(*apiService)
 
+	// app.Use(cors.New(cors.Config{
+	// 	AllowOrigins: []string{"http://localhost:3000"},
+	// 	AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	// 	AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Dyno-Api-Key", "X-User-ID"},
+	// }))
+
 	app.Get("/hello", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Hey"})
 	})
 
+	app.Get("/health", func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
+
 	api := app.Group("/api")
 
-	v1 := api.Group("/v1", middleware.AuthMiddlware)
+	v1 := api.Group("/v1")
+
+	protected := v1.Group("/", middleware.AuthMiddlware)
 
 	// auth routes
 	authRouter := app.Group("/auth")
@@ -86,14 +99,14 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	authRouter.Post("/refresh", authhandler.Refresh)
 
 	// project routes
-	projectRouter := v1.Group("/projects")
+	projectRouter := protected.Group("/projects")
 
 	projectRouter.Post("/create", projectHandler.CreateProject)
 
 	projectRouter.Get("/all", projectHandler.GetAllProjects)
 
 	// api key routes
-	apiKeyRouter := v1.Group("/api-keys")
+	apiKeyRouter := protected.Group("/api-keys")
 
 	apiKeyRouter.Post("/create", apiKeyHandler.CreateApiKey)
 
@@ -102,11 +115,13 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	apiKeyRouter.Patch("/revoke/:id", apiKeyHandler.RevokeApiKey)
 
 	// log routes
-	logRouter := api.Group("/logs", apiKeyMiddlware.ApiKeyMiddleware)
+	logRouter := v1.Group("/logs")
 
-	logRouter.Post("/create", logHandler.CreateLog)
+	logRouter.Post("/create",  apiKeyMiddlware.ApiKeyMiddleware, logHandler.CreateLog)
 
-	logRouter.Get("/all/:projectId", logHandler.GetLogsByProjectId)
+	protectedLogRouter := protected.Group("/logs")
+
+	protectedLogRouter.Get("/all/:projectId", logHandler.GetLogsByProjectId)
 
 	return &Server{app: app, config: cfg, logService: *logService}
 }

@@ -10,24 +10,24 @@ import (
 	"github.com/winnerx0/dyno/internal/config"
 	"github.com/winnerx0/dyno/internal/rabbitmq"
 
-    "github.com/golang-migrate/migrate/v4"
+    _"github.com/golang-migrate/migrate/v4"
     _"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func RunMigrations(dbUrl string) {
-    m, err := migrate.New(
-        "file://migrations",
-        dbUrl + "?sslmode=disable",
-    )
-    if err != nil {
-        log.Fatal(err)
-    }
+// func RunMigrations(dbUrl string) {
+//     m, err := migrate.New(
+//         "file://migrations",
+//         dbUrl + "?sslmode=disable",
+//     )
+//     if err != nil {
+//         log.Fatal(err)
+//     }
 
-    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-        log.Fatal(err)
-    }
-}
+//     if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+//         log.Fatal(err)
+//     }
+// }
 
 func main() {
 
@@ -46,7 +46,7 @@ func main() {
 
 	config := config.Load()
 	
-	RunMigrations(config.DBUrl)
+	// RunMigrations(config.DBUrl)
 
 	rabbitMQClient := rabbitmq.NewRabbitMQClient(config.RabbitMQConnectionUrl)
 
