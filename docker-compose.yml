@@ -5,7 +5,7 @@ services:
     ports:
       - '8081:8081'
     container_name: dyno_service
-    env_file: 
+    env_file:
       - ./dyno_service/.env.dev
     environment:
         RABBITMQ_HOST: rabbitmq:5672
@@ -14,16 +14,24 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://dyno_service:8081/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
   email_service:
     build: './email_service'
     container_name: email_service
   nginx:
     build: './nginx'
     ports:
-      - '80:80'
+      - '8080:5000'
     depends_on:
-      - dyno_service
-      - email_service
+      dyno_service:
+        condition: service_healthy
+      email_service:
+        condition: service_started
   rabbitmq:
     image: 'rabbitmq:latest'
     ports:
