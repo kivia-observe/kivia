@@ -27,17 +27,19 @@ func (r Repository) Save(log Log) error {
 	return err
 }
 
-func (r Repository) GetLogsByProjectId(projectId string, startDate *string, endDate *string) ([]Log, error) {
+func (r Repository) GetLogsByProjectId(projectId string, startDate *string, endDate *string, page int, limit int) ([]Log, error) {
 
 	query := `
-	SELECT id, path, latency, status, ip_address, timestamp FROM logs
+	SELECT id, path, latency, status, ip_address, timestamp
+	FROM logs
 	WHERE project_id = $1
 	AND ($2::timestamp IS NULL OR timestamp >= $2)
 	AND ($3::timestamp IS NULL OR timestamp <= $3)
 	ORDER BY timestamp DESC
+	LIMIT $4 OFFSET $5
 	`
 
-	rows, err := r.db.Query(context.Background(), query, projectId, startDate, endDate)
+	rows, err := r.db.Query(context.Background(), query, projectId, startDate, endDate, limit, page * limit)
 
 	if err != nil {
 		return nil, err
@@ -59,4 +61,20 @@ func (r Repository) GetLogsByProjectId(projectId string, startDate *string, endD
 	}
 
 	return logs, nil
+}
+
+func (r Repository) GetLogCountByProjectId(projectId string) int {
+	
+	var total int
+
+	query := `
+		SELECT COUNT(*) as total FROM logs WHERE project_id = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, projectId)
+
+	row.Scan(&total)
+
+	return total
+
 }
