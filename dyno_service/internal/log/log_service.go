@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	logger "log"
 
@@ -24,13 +25,13 @@ type Logservice struct {
 func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClient *rabbitmq.RabbitMQClient) *Logservice {
 	return &Logservice{
 		repo:           repo,
-		apiKeyRepo: apiKeyRepo,
+		apiKeyRepo:     apiKeyRepo,
 		rabbitMQClient: rabbitMQClient,
 	}
 }
 
 func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) error {
-	
+
 	queue, err := s.rabbitMQClient.Channel.QueueDeclare("log_queue", true, false, false, false, nil)
 
 	if err != nil {
@@ -80,9 +81,31 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 	return nil
 }
 
-func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endDate *string) ([]Log, error) {
+func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endDate *string, page string, limit string) (PaginatedLogResponse, error) {
 
-	return s.repo.GetLogsByProjectId(projectId, startDate, endDate)
+	p, err := strconv.Atoi(page)
+
+	if err != nil {
+		return PaginatedLogResponse{}, err
+	}
+
+	l, err := strconv.Atoi(limit)
+
+	if err != nil {
+		return PaginatedLogResponse{}, err
+	}
+
+	logs, err := s.repo.GetLogsByProjectId(projectId, startDate, endDate, p - 1, l)
+
+	total := s.repo.GetLogCountByProjectId(projectId)
+
+
+	return PaginatedLogResponse{
+		Logs: logs,
+		Page: p,
+		Items: len(logs),
+		TotelItems: total,
+	}, nil
 }
 
 func (s Logservice) LogConsumer(ctx context.Context) error {

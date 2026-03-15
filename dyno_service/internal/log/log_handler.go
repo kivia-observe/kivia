@@ -38,6 +38,10 @@ func (h loghandler) GetLogsByProjectId(c fiber.Ctx) error {
 
 	startDate := c.Query("startDate")
 
+	page := c.Query("page", "1")
+
+	limit := c.Query("limit", "10")
+
 	if startDate != "" {
 		startPtr = &startDate
 	}
@@ -47,14 +51,12 @@ func (h loghandler) GetLogsByProjectId(c fiber.Ctx) error {
 	if endDate != ""{
 		endPtr = &endDate
 	}
-	
 
-
-	logs, err := h.service.GetLogsByProjectId(projectId, startPtr, endPtr)
+	response, err := h.service.GetLogsByProjectId(projectId, startPtr, endPtr, page, limit)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(logs)
+	return c.JSON(response)
 }
