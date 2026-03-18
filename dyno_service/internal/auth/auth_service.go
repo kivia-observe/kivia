@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -147,13 +146,15 @@ func (s authservice) RefreshToken(refreshTokenString string) (*AuthResponse, err
 
 	userId := claims["sub"].(string)
 
-	storedRefreshToken := s.refreshTokenRepo.FindByToken(refreshTokenString)
-
-	storedHash := sha256.Sum256([]byte(storedRefreshToken.Token))
-
 	sha := sha256.Sum256([]byte(refreshTokenString))
-
-	if !bytes.Equal(storedHash[:], sha[:]) || storedRefreshToken.ExpiresAt.Before(time.Now()) {
+	
+	storedRefreshToken := s.refreshTokenRepo.FindByToken(hex.EncodeToString(sha[:]))
+	
+	if storedRefreshToken.Token == "" {
+		return nil, errors.New("Invalid refresh token")
+	}
+	
+	if storedRefreshToken.ExpiresAt.Before(time.Now()) {
 		return nil, errors.New("Invalid or expired refresh token")
 	}
 
