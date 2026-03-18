@@ -83,7 +83,7 @@ func (r Repository) FindProjectIdByApiKey(apiKey string) (string, error) {
 
 func (r Repository) FindAllByUserId(userId string) ([]Project, error) {
 
-	var projects []Project
+	projects := []Project{}
 
 	query := `
 	SELECT id, name, api_keys, user_id, created_at FROM projects WHERE user_id = $1
@@ -92,7 +92,7 @@ func (r Repository) FindAllByUserId(userId string) ([]Project, error) {
 	rows, err := r.db.Query(context.Background(), query, userId)
 
 	if err != nil {
-		return nil, err
+		return []Project{}, err
 	}
 
 	defer rows.Close()
@@ -101,7 +101,7 @@ func (r Repository) FindAllByUserId(userId string) ([]Project, error) {
 		var project Project
 		err := rows.Scan(&project.Id, &project.Name, &project.ApiKeys, &project.UserId, &project.CreatedAt)
 		if err != nil {
-			return nil, err
+			return []Project{}, err
 		}
 		projects = append(projects, project)
 	}
