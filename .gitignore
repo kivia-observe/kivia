@@ -5,3 +5,5 @@ dyno_service/.env.dev
 email_service/.env.local
 
 email_service/.env.dev
+
+/frontend
