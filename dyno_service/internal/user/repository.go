@@ -87,3 +87,33 @@ func (r Repository) FindById(id string) User {
 
 	return user
 }
+
+func (r Repository) DeleteById(id string) error {
+
+	query := `
+		DELETE FROM users WHERE id = $1
+	`
+
+	tag, err := r.db.Exec(context.Background(), query, id)
+	
+	if tag.RowsAffected() == 0 {
+		return UserNotFound
+	}
+
+	return err
+}
+
+func (r Repository) UpdateById(id string, user editUserRequest) error {
+
+	query := `
+		UPDATE users SET name = $1, email = $2 WHERE id = $3
+	`
+
+	tag, err := r.db.Exec(context.Background(), query, user.Name, user.Email, id)
+	
+	if tag.RowsAffected() == 0 {
+		return UserNotFound
+	}
+
+	return err
+}
