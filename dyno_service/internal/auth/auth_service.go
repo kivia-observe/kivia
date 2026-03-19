@@ -20,7 +20,7 @@ type authservice struct {
 	config           config.Config
 }
 
-func NewUserService(userrepo *user.Repository, refreshTokenRepo *refreshtoken.Repository, config config.Config) *authservice {
+func NewAuthService(userrepo *user.Repository, refreshTokenRepo *refreshtoken.Repository, config config.Config) *authservice {
 	return &authservice{
 		userrepo:         userrepo,
 		refreshTokenRepo: refreshTokenRepo,
