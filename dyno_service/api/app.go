@@ -59,11 +59,15 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	userRepository := user.NewRepository(db)
 
-	userService := auth.NewUserService(userRepository, refreshTokenRepository, cfg)
+    authService := auth.NewAuthService(userRepository, refreshTokenRepository, cfg)
 
 	_ = middleware.NewJwtMiddleware(*userRepository, cfg)
 
 	apiKeyHandler := apikey.NewApiKeyHandler(*apiService)
+	
+	userService := user.NewUserService(*userRepository)
+	
+	userHandler := user.NewUserHandler(*userService)
 
 	// app.Use(cors.New(cors.Config{
 	// 	AllowOrigins: []string{"http://localhost:3000"},
@@ -88,7 +92,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	// auth routes
 	authRouter := app.Group("/auth")
 
-	authhandler := auth.NewAuthHandler(*userService)
+	authhandler := auth.NewAuthHandler(*authService)
 
 	authRouter.Post("/register", authhandler.Register)
 
@@ -122,6 +126,15 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	protectedLogRouter := protected.Group("/logs")
 
 	protectedLogRouter.Get("/all/:projectId", logHandler.GetLogsByProjectId)
+	
+	// user routes
+	userRouter := protected.Group("/users")
+	
+	userRouter.Get("/me", userHandler.GetCurrentUser)
+
+	userRouter.Delete("/me", userHandler.DeleteUser)
+	
+	userRouter.Put("/me", userHandler.UpdateUser)
 
 	return &Server{app: app, config: cfg, logService: *logService}
 }
