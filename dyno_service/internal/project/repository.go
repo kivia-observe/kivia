@@ -81,27 +81,31 @@ func (r Repository) FindProjectIdByApiKey(apiKey string) (string, error) {
 	return projectId, err
 }
 
-func (r Repository) FindAllByUserId(userId string) ([]Project, error) {
+func (r Repository) FindAllByUserId(userId string) ([]projectResponse, error) {
 
-	projects := []Project{}
+	projects := []projectResponse{}
 
 	query := `
-	SELECT id, name, api_keys, user_id, created_at FROM projects WHERE user_id = $1
+	SELECT projects.id, projects.name, COUNT(api_keys.id), projects.user_id, projects.created_at 
+	FROM projects
+	LEFT JOIN api_keys ON api_keys.project_id = projects.id
+	WHERE projects.user_id = $1
+	GROUP BY projects.id
 	`
 
 	rows, err := r.db.Query(context.Background(), query, userId)
 
 	if err != nil {
-		return []Project{}, err
+		return []projectResponse{}, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		var project Project
+		var project projectResponse
 		err := rows.Scan(&project.Id, &project.Name, &project.ApiKeys, &project.UserId, &project.CreatedAt)
 		if err != nil {
-			return []Project{}, err
+			return []projectResponse{}, err
 		}
 		projects = append(projects, project)
 	}
