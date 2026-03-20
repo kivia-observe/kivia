@@ -3,20 +3,22 @@ package apikey
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/winnerx0/dyno/internal/project"
 	"github.com/winnerx0/dyno/internal/utils"
 )
 
 type apiKeyService struct {
-	repo ApiKeyRepository
-	projectRepo *project.Repository
+	repo        ApiKeyRepository
+	projectRepo project.ProjectRepository
 }
 
-func NewApiKeyService(repo ApiKeyRepository, projectRepo *project.Repository) *apiKeyService {
+func NewApiKeyService(repo ApiKeyRepository, projectRepo project.ProjectRepository) *apiKeyService {
 	return &apiKeyService{
-		repo: repo,
+		repo:        repo,
 		projectRepo: projectRepo,
 	}
 }
@@ -41,7 +43,7 @@ func (s apiKeyService) CreateApiKey(apiKey *ApiKey) (createApiKeyResponse, error
 
 	return createApiKeyResponse{
 		Message: "API key created successfully",
-		ApiKey: key,
+		ApiKey:  key,
 	}, nil
 }
 
@@ -52,9 +54,8 @@ func (s apiKeyService) GetAllApiKeysByProject(userId string, projectId string) (
 	if err != nil {
 
 		log.Println("Error: Error find project using id", err.Error())
-		return nil, utils.ErrProjectNotFound
+		return nil, err
 	}
-
 
 	if !projectExists {
 		return nil, utils.ErrProjectNotFound
@@ -66,15 +67,18 @@ func (s apiKeyService) GetAllApiKeysByProject(userId string, projectId string) (
 func (s apiKeyService) RevokeApiKey(apiKeyId string, userId string) error {
 	apiKey, err := s.repo.FindById(apiKeyId)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return utils.ErrApiKeyNotFound
+		}
 		return err
-	}
-	
-	if apiKey.Id == "" {
-		return utils.ErrApiKeyNotFound
 	}
 
 	if apiKey.UserId != userId {
 		return utils.ErrUnauthorized
+	}
+	
+	if apiKey.Revoked {
+		return utils.ErrInvalidRovoke
 	}
 
 	return s.repo.RevokeApiKey(apiKeyId)
