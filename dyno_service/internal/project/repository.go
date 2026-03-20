@@ -36,7 +36,7 @@ func (r Repository) Save(project Project) error {
 	return err
 }
 
-func (r Repository) FindById(id string) (Project, error) {
+func (r Repository) FindById(id string) (*Project, error) {
 
 	var project Project
 
@@ -48,7 +48,7 @@ func (r Repository) FindById(id string) (Project, error) {
 
 	err := row.Scan(&project.Id, &project.Name, &project.ApiKeys, &project.UserId, &project.CreatedAt)
 
-	return project, err
+	return &project, err
 }
 
 func (r Repository) ExistsById(id string) (bool, error) {
@@ -81,9 +81,9 @@ func (r Repository) FindProjectIdByApiKey(apiKey string) (string, error) {
 	return projectId, err
 }
 
-func (r Repository) FindAllByUserId(userId string) ([]projectResponse, error) {
+func (r Repository) FindAllByUserId(userId string) ([]ProjectResponse, error) {
 
-	projects := []projectResponse{}
+	projects := []ProjectResponse{}
 
 	query := `
 	SELECT projects.id, projects.name, COUNT(api_keys.id), projects.user_id, projects.created_at 
@@ -96,16 +96,16 @@ func (r Repository) FindAllByUserId(userId string) ([]projectResponse, error) {
 	rows, err := r.db.Query(context.Background(), query, userId)
 
 	if err != nil {
-		return []projectResponse{}, err
+		return []ProjectResponse{}, err
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		var project projectResponse
+		var project ProjectResponse
 		err := rows.Scan(&project.Id, &project.Name, &project.ApiKeys, &project.UserId, &project.CreatedAt)
 		if err != nil {
-			return []projectResponse{}, err
+			return []ProjectResponse{}, err
 		}
 		projects = append(projects, project)
 	}

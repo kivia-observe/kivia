@@ -21,7 +21,7 @@ func (s projectservice) CreateProject(project *Project) error {
 	return nil
 }
 
-func (s projectservice) GetAllProjectsByUser(userId string) ([]projectResponse, error) {
+func (s projectservice) GetAllProjectsByUser(userId string) ([]ProjectResponse, error) {
 
 	return s.repo.FindAllByUserId(userId)
 }
