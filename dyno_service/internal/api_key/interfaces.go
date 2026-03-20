@@ -7,4 +7,5 @@ type ApiKeyRepository interface {
 	FindAllByUserIdAndProjectId(userId string, projectId string) ([]ApiKey, error)
 	RevokeApiKey(id string) error
 	FindProjectIdByKey(apiKey string) (string, error)
+	FindIdById(key string) (string, error)
 }

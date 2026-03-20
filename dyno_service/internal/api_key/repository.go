@@ -113,3 +113,18 @@ func (r *Repository) FindProjectIdByKey(apiKey string) (string, error) {
 	
 	return *projectId, err
 }
+
+func (r *Repository) FindIdById(key string) (string, error) {
+
+	var id *string
+
+	query := `
+	SELECT id FROM api_keys WHERE key = $1
+	`
+
+	row := r.db.QueryRow(context.Background(), query, key)
+
+	err := row.Scan(&id)
+	
+	return *id, err
+}
