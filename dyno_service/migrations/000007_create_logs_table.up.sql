@@ -5,6 +5,6 @@ CREATE TABLE logs (
     ip_address VARCHAR(20) NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL,
     latency VARCHAR(25) NOT NULL,
-    project_Id UUID NOT NULL,
-    FOREIGN KEY (project_Id) REFERENCES projects(id)
+    api_key_id UUID NOT NULL,
+    FOREIGN KEY (api_key_id) REFERENCES api_keys(id)
 );
