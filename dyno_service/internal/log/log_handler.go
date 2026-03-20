@@ -1,6 +1,8 @@
 package log
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+)
 
 type loghandler struct {
 	service Logservice
@@ -33,8 +35,15 @@ func (h loghandler) CreateLog(c fiber.Ctx) error {
 func (h loghandler) GetLogsByProjectId(c fiber.Ctx) error {
 
 	projectId := c.Params("projectId")
+	
+	var startPtr, endPtr, apiKeyTypePtr, statusCodePtr *string
 
-	var startPtr, endPtr *string
+	statusCode := c.Query("statusCode")
+	if statusCode != "" {
+		statusCodePtr = &statusCode
+	}
+	
+	apiKeyType := c.Query("type")
 
 	startDate := c.Query("startDate")
 
@@ -51,8 +60,12 @@ func (h loghandler) GetLogsByProjectId(c fiber.Ctx) error {
 	if endDate != ""{
 		endPtr = &endDate
 	}
+	
+	if apiKeyType != "" {
+		apiKeyTypePtr = &apiKeyType
+	}
 
-	response, err := h.service.GetLogsByProjectId(projectId, startPtr, endPtr, page, limit)
+	response, err := h.service.GetLogsByProjectId(projectId, startPtr, endPtr, statusCodePtr, apiKeyTypePtr, page, limit)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

@@ -41,16 +41,14 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 	apiKeyHash := sha256.Sum256([]byte(apiKey))
 
 	apiKeyHex := hex.EncodeToString(apiKeyHash[:])
-
-	projectId, err := s.apiKeyRepo.FindProjectIdByKey(apiKeyHex)
+	
+	apiKeyId, err := s.apiKeyRepo.FindIdById(apiKeyHex)
 
 	if err != nil {
 		return err
 	}
 
 	latency := fmt.Sprintf("%d ms", createLogRequest.Latency)
-
-	fmt.Println("latency", latency)
 
 	log := Log{
 		Id:        createLogRequest.Id,
@@ -59,7 +57,7 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 		Status:    createLogRequest.Status,
 		Timestamp: createLogRequest.Timestamp,
 		Latency:   latency,
-		ProjectId: projectId,
+		ApiKey:    apiKeyId,
 	}
 
 	logBytes, err := json.Marshal(log)
@@ -81,7 +79,7 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 	return nil
 }
 
-func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endDate *string, page string, limit string) (PaginatedLogResponse, error) {
+func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endDate *string, statusCode *string, apiKeyType *string, page string, limit string) (PaginatedLogResponse, error) {
 
 	p, err := strconv.Atoi(page)
 
@@ -95,7 +93,16 @@ func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endD
 		return PaginatedLogResponse{}, err
 	}
 
-	logs, err := s.repo.GetLogsByProjectId(projectId, startDate, endDate, p - 1, l)
+	var statusCodePtr *int
+	if statusCode != nil {
+		sc, err := strconv.Atoi(*statusCode)
+		if err != nil {
+			return PaginatedLogResponse{}, err
+		}
+		statusCodePtr = &sc
+	}
+
+	logs, err := s.repo.GetLogsByProjectId(projectId, startDate, endDate, statusCodePtr, apiKeyType, p-1, l)
 
 	total := s.repo.GetLogCountByProjectId(projectId)
 

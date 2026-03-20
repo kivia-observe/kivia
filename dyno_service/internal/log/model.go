@@ -16,6 +16,6 @@ type Log struct {
 	
 	Latency string `json:"latency"`
 	
-	ProjectId string `json:"project_id"`
+	ApiKey string `json:"api_key"`
 	
 }
