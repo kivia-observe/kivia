@@ -1,87 +1,181 @@
-package apikey
+package apikey_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	apikey "github.com/winnerx0/dyno/internal/api_key"
+	apikeymocks "github.com/winnerx0/dyno/internal/api_key/mocks"
+	projectmocks "github.com/winnerx0/dyno/internal/project/mocks"
+	"github.com/winnerx0/dyno/internal/utils"
 )
 
-type MockApiKeyRepository struct {
-	mock.Mock
-}
-
-func (m *MockApiKeyRepository) Save(apiKey ApiKey) error {
-	args := m.Called(apiKey)
-
-	return args.Error(0)
-}
-
-func (m *MockApiKeyRepository) FindById(id string) (ApiKey, error) {
-	args := m.Called(id)
-
-	return args.Get(0).(ApiKey), args.Error(1)
-}
-
-func (m *MockApiKeyRepository) FindByProjectId(projectId string) (ApiKey, error) {
-	args := m.Called(projectId)
-	return args.Get(0).(ApiKey), args.Error(1)
-}
-
-func (m *MockApiKeyRepository) FindAllByUserIdAndProjectId(userId string, projectId string) ([]ApiKey, error) {
-	args := m.Called(userId, projectId)
-	return args.Get(0).([]ApiKey), args.Error(1)
-}
-
-func (m *MockApiKeyRepository) RevokeApiKey(id string) error {
-	args := m.Called(id)
-	return args.Error(0)
-}
-
-func (m *MockApiKeyRepository) FindProjectIdByKey(apiKey string) (string, error) {
-	args := m.Called(apiKey)
-	return args.String(0), args.Error(1)
-}
-func TestUserService_CreateApiKey_Success(t *testing.T) {
-	repo := new(MockApiKeyRepository)
+func TestCreateApiKey_Success(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
 
 	repo.On("Save", mock.Anything).Return(nil)
 
-	service := apiKeyService{
-		repo: repo,
-	}
+	service := apikey.NewApiKeyService(repo, projectRepo)
 
-	apiKey := &ApiKey{
+	key := &apikey.ApiKey{
 		Id:   uuid.NewString(),
 		Name: "test",
 	}
 
-	response, err := service.CreateApiKey(apiKey)
+	response, err := service.CreateApiKey(key)
 
 	assert.NoError(t, err)
-
 	assert.Equal(t, "API key created successfully", response.Message)
+	assert.NotEmpty(t, response.ApiKey)
+	repo.AssertExpectations(t)
 }
 
-func TestUserService_CreateApiKey_DBError_ReturnsError(t *testing.T) {
-	repo := new(MockApiKeyRepository)
+func TestCreateApiKey_DBError_ReturnsError(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
 
 	repo.On("Save", mock.Anything).Return(errors.New("DB Failure"))
 
-	service := apiKeyService{
-		repo: repo,
-	}
+	service := apikey.NewApiKeyService(repo, projectRepo)
 
-	apiKey := &ApiKey{
+	key := &apikey.ApiKey{
 		Id:   uuid.NewString(),
 		Name: "test",
 	}
 
-	response, err := service.CreateApiKey(apiKey)
+	response, err := service.CreateApiKey(key)
 
 	assert.Error(t, err)
-
 	assert.Empty(t, response)
+	repo.AssertExpectations(t)
+}
+
+func TestGetApiKeyByProject_Success(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	projectRepo.On("ExistsById", "project-123").Return(true, nil)
+
+	repo.On("FindAllByUserIdAndProjectId", "user-123", "project-123").Return([]apikey.ApiKey{
+		{
+			Id:   uuid.NewString(),
+			Name: "test",
+		},
+	}, nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	apiKeys, err := service.GetAllApiKeysByProject("user-123", "project-123")
+
+	assert.NoError(t, err)
+	assert.NotZero(t, len(apiKeys))
+	repo.AssertExpectations(t)
+	projectRepo.AssertExpectations(t)
+}
+
+func TestGetApiKeyByProject_Fail_ErrSomethingWentWrong(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	projectRepo.On("ExistsById", "project-123").Return(false, pgx.ErrNoRows)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	apiKeys, err := service.GetAllApiKeysByProject("user-123", "project-123")
+
+	assert.ErrorIs(t, err, utils.ErrSomethingWentWrong, "Something went wrong")
+	assert.Zero(t, len(apiKeys))
+	repo.AssertExpectations(t)
+}
+
+func TestGetApiKeyByProject_Fail_ErrProjectNotFound(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	projectRepo.On("ExistsById", "project-123").Return(false, nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	apiKeys, err := service.GetAllApiKeysByProject("user-123", "project-123")
+
+	assert.ErrorIs(t, err, utils.ErrProjectNotFound, "Project not found")
+	assert.Zero(t, len(apiKeys))
+	repo.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_Success(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	repo.On("FindById", "api-key-123").Return(apikey.ApiKey{Id: "api-key-123", Revoked: false, UserId: "user-123"}, nil)
+	
+	repo.On("RevokeApiKey", "api-key-123").Return(nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	err := service.RevokeApiKey("api-key-123", "user-123")
+
+	assert.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_Fail_ErrSomethingWentWrong(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	repo.On("FindById", "api-key-123").Return(apikey.ApiKey{}, utils.ErrSomethingWentWrong)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	err := service.RevokeApiKey("api-key-123", "user-123")
+
+	assert.ErrorIs(t, err, utils.ErrSomethingWentWrong, "Something went wrong")
+	repo.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_Fail_ErrApiKeyNotFound(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	repo.On("FindById", "api-key-123").Return(apikey.ApiKey{}, pgx.ErrNoRows)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	err := service.RevokeApiKey("api-key-123", "user-123")
+
+	assert.ErrorIs(t, err, utils.ErrApiKeyNotFound, "Api key not found")
+	repo.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_Fail_ErrUnauthorized(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	repo.On("FindById", "api-key-123").Return(apikey.ApiKey{Id: "api-key-123", UserId: "user-123"}, nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	err := service.RevokeApiKey("api-key-123", "user-456")
+
+	assert.ErrorIs(t, err, utils.ErrUnauthorized, "Unauthorized")
+	repo.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_Fail_ErrInvalidRovoke(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	repo.On("FindById", "api-key-123").Return(apikey.ApiKey{Id: "api-key-123", UserId: "user-123", Revoked: true}, nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	err := service.RevokeApiKey("api-key-123", "user-123")
+
+	assert.ErrorIs(t, err, utils.ErrInvalidRovoke, "API key already revoked")
+	repo.AssertExpectations(t)
 }
