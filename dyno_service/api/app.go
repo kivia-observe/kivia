@@ -87,8 +87,6 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	v1 := api.Group("/v1")
 
-	protected := v1.Group("/", middleware.AuthMiddlware)
-
 	// auth routes
 	authRouter := app.Group("/auth")
 
@@ -103,14 +101,14 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	authRouter.Post("/refresh", authhandler.Refresh)
 
 	// project routes
-	projectRouter := protected.Group("/projects")
+	projectRouter := v1.Group("/projects", middleware.AuthMiddlware)
 
 	projectRouter.Post("/create", projectHandler.CreateProject)
 
 	projectRouter.Get("/all", projectHandler.GetAllProjects)
 
 	// api key routes
-	apiKeyRouter := protected.Group("/api-keys")
+	apiKeyRouter := v1.Group("/api-keys", middleware.AuthMiddlware)
 
 	apiKeyRouter.Post("/create", apiKeyHandler.CreateApiKey)
 
@@ -123,12 +121,10 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	logRouter.Post("/create",  apiKeyMiddlware.ApiKeyMiddleware, logHandler.CreateLog)
 
-	protectedLogRouter := protected.Group("/logs")
-
-	protectedLogRouter.Get("/all/:projectId", logHandler.GetLogsByProjectId)
+	logRouter.Get("/all/:projectId", middleware.AuthMiddlware, logHandler.GetLogsByProjectId)
 	
 	// user routes
-	userRouter := protected.Group("/users")
+	userRouter := v1.Group("/users", middleware.AuthMiddlware)
 	
 	userRouter.Get("/me", userHandler.GetCurrentUser)
 
