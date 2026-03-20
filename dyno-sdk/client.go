@@ -12,7 +12,7 @@ import (
 
 func NewClient(apiKey string) *Client {
 	client := &Client{
-		BaseURL:    "http://localhost:80/api",
+		BaseURL:    "http://localhost:8080/api/v1",
 		ApiKey:     apiKey,
 		HttpClient: &http.Client{},
 	}
