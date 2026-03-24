@@ -2,9 +2,10 @@ package api
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
-	_"github.com/gofiber/fiber/v3/middleware/cors"
+	_ "github.com/gofiber/fiber/v3/middleware/cors"
 	apikey "github.com/winnerx0/dyno/internal/api_key"
 	"github.com/winnerx0/dyno/internal/auth"
 	"github.com/winnerx0/dyno/internal/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/winnerx0/dyno/internal/project"
 	"github.com/winnerx0/dyno/internal/rabbitmq"
 	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
+	"github.com/winnerx0/dyno/internal/sse"
 	"github.com/winnerx0/dyno/internal/user"
 )
 
@@ -30,6 +32,13 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	app := fiber.New(fiber.Config{
 		AppName: "Dyno",
 	})
+
+	logger := slog.Default()
+
+		server := sse.NewSSEServer(context.Background(), logger)
+
+		server.SrvWg.Add(1)
+		go server.Run()
 
 	db := database.Connect(cfg.DBUrl)
 
@@ -51,7 +60,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	logRepository := log.NewRepository(db)
 
-	logService := log.NewLogService(logRepository, apiKeyRepository, rabbitMQClient)
+	logService := log.NewLogService(logRepository, apiKeyRepository, rabbitMQClient, server)
 
 	logHandler := log.NewLogHandler(*logService)
 
@@ -64,9 +73,9 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	_ = middleware.NewJwtMiddleware(*userRepository, cfg)
 
 	apiKeyHandler := apikey.NewApiKeyHandler(*apiService)
-	
+
 	userService := user.NewUserService(*userRepository)
-	
+
 	userHandler := user.NewUserHandler(*userService)
 
 	// app.Use(cors.New(cors.Config{
@@ -119,17 +128,19 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	// log routes
 	logRouter := v1.Group("/logs")
 
-	logRouter.Post("/create",  apiKeyMiddlware.ApiKeyMiddleware, logHandler.CreateLog)
+	logRouter.Post("/create", apiKeyMiddlware.ApiKeyMiddleware, logHandler.CreateLog)
 
 	logRouter.Get("/all/:projectId", middleware.AuthMiddlware, logHandler.GetLogsByProjectId)
-	
+
+	logRouter.Get("/stream/:projectId", middleware.AuthMiddlware, server.HandleConnection)
+
 	// user routes
 	userRouter := v1.Group("/users", middleware.AuthMiddlware)
-	
+
 	userRouter.Get("/me", userHandler.GetCurrentUser)
 
 	userRouter.Delete("/me", userHandler.DeleteUser)
-	
+
 	userRouter.Put("/me", userHandler.UpdateUser)
 
 	return &Server{app: app, config: cfg, logService: *logService}
