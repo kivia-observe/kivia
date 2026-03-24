@@ -11,22 +11,26 @@ import (
 
 	logger "log"
 
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	apikey "github.com/winnerx0/dyno/internal/api_key"
 	"github.com/winnerx0/dyno/internal/rabbitmq"
+	"github.com/winnerx0/dyno/internal/sse"
 )
 
 type Logservice struct {
 	repo           *Repository
 	apiKeyRepo     *apikey.Repository
 	rabbitMQClient *rabbitmq.RabbitMQClient
+	eventServer    *sse.EventServer
 }
 
-func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClient *rabbitmq.RabbitMQClient) *Logservice {
+func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClient *rabbitmq.RabbitMQClient, eventServer *sse.EventServer) *Logservice {
 	return &Logservice{
 		repo:           repo,
 		apiKeyRepo:     apiKeyRepo,
 		rabbitMQClient: rabbitMQClient,
+		eventServer:    eventServer,
 	}
 }
 
@@ -48,10 +52,16 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 		return err
 	}
 
+	projectId, err := s.apiKeyRepo.FindProjectIdByKey(apiKeyHex)
+
+	if err != nil {
+		return err
+	}
+
 	latency := fmt.Sprintf("%d ms", createLogRequest.Latency)
 
 	log := Log{
-		Id:        createLogRequest.Id,
+		Id:        uuid.New().String(),
 		Path:      createLogRequest.Path,
 		IPAddress: createLogRequest.IPAddress,
 		Status:    createLogRequest.Status,
@@ -65,6 +75,8 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 	if err != nil {
 		return err
 	}
+
+	s.eventServer.BroadcastToProject(projectId, logBytes)
 
 	err = s.rabbitMQClient.Channel.Publish("", queue.Name, false, false, amqp.Publishing{
 		ContentType:  "application/json",
