@@ -1,0 +1,1 @@
+ALTER TABLE api_keys ADD CONSTRAINT unique_api_key_name UNIQUE (name, project_id);

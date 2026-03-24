@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -62,6 +63,10 @@ func (r Repository) ExistsById(id string) (bool, error) {
 	row := r.db.QueryRow(context.Background(), query, id)
 
 	err := row.Scan(&exists)
+	
+	if errors.Is(err, pgx.ErrNoRows){
+		return false, nil
+	}
 
 	return exists, err
 }
