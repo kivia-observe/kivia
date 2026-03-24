@@ -2,9 +2,12 @@ package apikey
 
 import (
 	"context"
-	_"log"
+	"errors"
+	_ "log"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/winnerx0/dyno/internal/utils"
 )
 
 type Repository struct {
@@ -24,7 +27,15 @@ func (r *Repository) Save(apiKey ApiKey) error {
 	`
 
 	_, err := r.db.Exec(context.Background(), query, apiKey.Name, apiKey.Key, apiKey.UserId, apiKey.ProjectId, apiKey.Revoked)
-
+	
+	var pgErr *pgconn.PgError
+	
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505"{
+			return utils.ErrDuplicateKey
+		}
+	}
+	
 	return err
 }
 
@@ -63,7 +74,7 @@ func (r *Repository) FindAllByUserIdAndProjectId(userId string, projectId string
 	apiKeys := make([]ApiKey, 0)
 
 	query := `
-		SELECT id, name, key, created_at FROM api_keys WHERE revoked = FALSE AND user_id = $1 AND project_id = $2
+		SELECT id, name, key, revoked, project_id, created_at FROM api_keys WHERE user_id = $1 AND project_id = $2
 	`
 
 	rows, err := r.db.Query(context.Background(), query, userId, projectId)
@@ -77,7 +88,7 @@ func (r *Repository) FindAllByUserIdAndProjectId(userId string, projectId string
 	for rows.Next() {
 		var apiKey ApiKey
 
-		err := rows.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.CreatedAt)
+		err := rows.Scan(&apiKey.Id, &apiKey.Name, &apiKey.Key, &apiKey.Revoked, &apiKey.ProjectId, &apiKey.CreatedAt)
 
 		if err != nil {
 			return nil, err
@@ -92,7 +103,7 @@ func (r *Repository) FindAllByUserIdAndProjectId(userId string, projectId string
 func (r *Repository) RevokeApiKey(id string) error {
 
 	query := `
-		UPDATE api_keys SET revoked = true WHERE id = $1
+		UPDATE api_keys SET revoked = true WHERE id = $1;
 	`
 	_, err := r.db.Exec(context.Background(), query, id)
 

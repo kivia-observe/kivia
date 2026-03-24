@@ -3,17 +3,16 @@ package log
 import "time"
 
 type createLogRequest struct {
-	Id string `json:"id"`
 
-	Path string `json:"path"`
+	Path string `json:"path" validate:"required"`
 
-	Status int `json:"status"`
+	Status int `json:"status" validate:"required"`
 
 	IPAddress string `json:"ip_address,omitempty"`
 
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp" validate:"required"`
 
-	Latency int `json:"latency"`
+	Latency int `json:"latency" validate:"required"`
 }
 
 type PaginatedLogResponse struct {

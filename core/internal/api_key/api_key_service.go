@@ -24,6 +24,17 @@ func NewApiKeyService(repo ApiKeyRepository, projectRepo project.ProjectReposito
 }
 
 func (s apiKeyService) CreateApiKey(apiKey *ApiKey) (createApiKeyResponse, error) {
+	
+	projectExists, err := s.projectRepo.ExistsById(apiKey.ProjectId)
+
+	if err != nil {
+		return createApiKeyResponse{}, err
+	}
+
+	if !projectExists {
+		return createApiKeyResponse{}, utils.ErrProjectNotFound
+	}
+	
 
 	key, err := generateAPIKey()
 
@@ -54,7 +65,7 @@ func (s apiKeyService) GetAllApiKeysByProject(userId string, projectId string) (
 	if err != nil {
 
 		log.Println("Error: Error find project using id", err.Error())
-		return nil, err
+		return nil, utils.ErrSomethingWentWrong
 	}
 
 	if !projectExists {

@@ -17,6 +17,8 @@ import (
 func TestCreateApiKey_Success(t *testing.T) {
 	repo := new(apikeymocks.MockApiKeyRepository)
 	projectRepo := new(projectmocks.MockProjectRepository)
+	
+		projectRepo.On("ExistsById", mock.Anything).Return(true, nil)
 
 	repo.On("Save", mock.Anything).Return(nil)
 
@@ -35,9 +37,56 @@ func TestCreateApiKey_Success(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
+func TestCreateApiKey_DuplicateName_ReturnsError(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+	
+	projectRepo.On("ExistsById", mock.Anything).Return(true, nil)
+
+	repo.On("Save", mock.Anything).Return(utils.ErrDuplicateKey)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	key := &apikey.ApiKey{
+		Id:   uuid.NewString(),
+		Name: "test",
+	}
+
+	response, err := service.CreateApiKey(key)
+
+	assert.Error(t, err)
+	assert.Empty(t, response)
+	assert.ErrorIs(t, err, utils.ErrDuplicateKey)
+	repo.AssertExpectations(t)
+}
+
+func TestCreateApiKey_ProjectNotFound_ReturnsError(t *testing.T) {
+	repo := new(apikeymocks.MockApiKeyRepository)
+	projectRepo := new(projectmocks.MockProjectRepository)
+
+	projectRepo.On("ExistsById", mock.Anything).Return(false, nil)
+
+	service := apikey.NewApiKeyService(repo, projectRepo)
+
+	key := &apikey.ApiKey{
+		Id:   uuid.NewString(),
+		Name: "test",
+	}
+
+	response, err := service.CreateApiKey(key)
+
+	assert.Error(t, err)
+	assert.Empty(t, response)
+	assert.ErrorIs(t, err, utils.ErrProjectNotFound)
+	repo.AssertNotCalled(t, "Save")
+	repo.AssertExpectations(t)
+}
+
 func TestCreateApiKey_DBError_ReturnsError(t *testing.T) {
 	repo := new(apikeymocks.MockApiKeyRepository)
 	projectRepo := new(projectmocks.MockProjectRepository)
+	
+	projectRepo.On("ExistsById", mock.Anything).Return(true, nil)
 
 	repo.On("Save", mock.Anything).Return(errors.New("DB Failure"))
 
@@ -82,7 +131,7 @@ func TestGetApiKeyByProject_Fail_ErrSomethingWentWrong(t *testing.T) {
 	repo := new(apikeymocks.MockApiKeyRepository)
 	projectRepo := new(projectmocks.MockProjectRepository)
 
-	projectRepo.On("ExistsById", "project-123").Return(false, pgx.ErrNoRows)
+	projectRepo.On("ExistsById", "project-123").Return(false, errors.New("DB error"))
 
 	service := apikey.NewApiKeyService(repo, projectRepo)
 

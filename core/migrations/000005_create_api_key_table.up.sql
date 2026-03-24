@@ -1,7 +1,7 @@
-CREATE TABLE api_keys (
+CREATE TABLE IF NOT EXISTS api_keys (
     id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    key TEXT NOT NULL,
+    name VARCHAR(15) NOT NULL CHECK (LENGTH(name) > 3),
+    key VARCHAR(255) NOT NULL,
     user_id UUID NOT NULL,
     project_id UUID NOT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,

@@ -1,6 +1,6 @@
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL CHECK (LENGTH(name) > 3),
+    name VARCHAR(15) NOT NULL CHECK (LENGTH(name) > 3),
     user_id UUID NOT NULL,
     api_keys VARCHAR(100)[] NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

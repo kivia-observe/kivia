@@ -1,0 +1,1 @@
+ALTER TABLE api_keys DROP CONSTRAINT IF EXISTS unique_api_key_name;

@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	client := dynosdk.NewClient("dyno_-icgsoOegPy42ehTHxvvLvI4SJa3wFY0ltiLboEipbo")
+	client := dynosdk.NewClient("dyno_qlDBXH0tAtsUEtGBXZOmdNEqYEjytocJL8SvJou2DXo")
 
 	http.HandleFunc("/", client.NewLog(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

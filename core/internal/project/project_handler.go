@@ -3,6 +3,7 @@ package project
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/winnerx0/dyno/internal/validator"
 )
 
 type projecthandler struct {
@@ -21,6 +22,10 @@ func (h projecthandler) CreateProject(c fiber.Ctx) error {
 
 	if err := c.Bind().JSON(&projectRequest); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+	
+	if err := validator.Get().Struct(projectRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": validator.FirstError(err)})
 	}
 
 	project := &Project{

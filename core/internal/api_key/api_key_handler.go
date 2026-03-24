@@ -2,8 +2,11 @@ package apikey
 
 import (
 	"errors"
+
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"github.com/winnerx0/dyno/internal/utils"
+	"github.com/winnerx0/dyno/internal/validator"
 )
 
 type apiKeyHandler struct {
@@ -23,6 +26,10 @@ func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&apiKeyRequest); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
+	
+	if err := validator.Get().Struct(apiKeyRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": validator.FirstError(err)})
+	}
 
 	apiKey := &ApiKey{
 		Name:      apiKeyRequest.Name,
@@ -33,6 +40,13 @@ func (h apiKeyHandler) CreateApiKey(c fiber.Ctx) error {
 	response, err := h.service.CreateApiKey(apiKey)
 
 	if err != nil {
+		if errors.Is(err, utils.ErrProjectNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		}
+		
+		if errors.Is(err, utils.ErrDuplicateKey) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -44,6 +58,12 @@ func (h apiKeyHandler) GetAllApiKeys(c fiber.Ctx) error {
 	userId := c.Value("userId").(string)
 
 	projectId := c.Params("projectId")
+	
+	err := uuid.Validate(projectId)
+	
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Project not found"})
+	}
 
 	apiKeys, err := h.service.GetAllApiKeysByProject(userId, projectId)
 
@@ -73,6 +93,9 @@ func (h apiKeyHandler) RevokeApiKey(c fiber.Ctx) error {
 		}
 		if errors.Is(err, utils.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+		}
+		if errors.Is(err, utils.ErrInvalidRovoke){
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

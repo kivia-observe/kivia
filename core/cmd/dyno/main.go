@@ -46,7 +46,7 @@ func main() {
 
 	config := config.Load()
 	
-	RunMigrations(config.DBUrl)
+	// RunMigrations(config.DBUrl)
 
 	rabbitMQClient := rabbitmq.NewRabbitMQClient(config.RabbitMQConnectionUrl)
 

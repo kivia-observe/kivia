@@ -1,4 +1,4 @@
-CREATE TABLE logs (
+CREATE TABLE IF NOT EXISTS logs (
     id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
     path VARCHAR(255) NOT NULL, 
     status INTEGER NOT NULL,

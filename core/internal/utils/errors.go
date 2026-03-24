@@ -6,7 +6,7 @@ var (
 
 	// api key related errors
 	ErrUnauthorized = errors.New("Unauthorized")
-	ErrDuplicateKey = errors.New("Duplicate API key name for the project")
+	ErrDuplicateKey = errors.New("API Key name already exists for the project")
 	ErrApiKeyNotFound = errors.New("API key not found")
 	ErrInvalidApiKey = errors.New("Invalid API key")
 	ErrInvalidRovoke = errors.New("API key already revoked")

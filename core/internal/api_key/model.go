@@ -12,9 +12,9 @@ type ApiKey struct {
 
 	UserId string `json:"user_id,omitempty"`
 
-	ProjectId string `json:"project_id,omitempty"`
+	ProjectId string `json:"project_id"`
 
-	Revoked bool `json:"revoked,omitempty"`
+	Revoked bool `json:"revoked"`
 
 	CreatedAt time.Time `json:"created_at"`
 }

@@ -3,7 +3,7 @@ package project
 import "time"
 
 type createProjectRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=3,max=15"`
 }
 
 type ProjectResponse struct {

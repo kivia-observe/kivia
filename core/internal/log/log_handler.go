@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/winnerx0/dyno/internal/validator"
 )
 
 type loghandler struct {
@@ -22,6 +23,10 @@ func (h loghandler) CreateLog(c fiber.Ctx) error {
 
 	if err := c.Bind().JSON(&createLogRequest); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+	
+	if err := validator.Get().Struct(createLogRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": validator.FirstError(err)})
 	}
 
 	if err := h.service.CreateLog(createLogRequest, apiKey); err != nil {
