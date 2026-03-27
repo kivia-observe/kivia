@@ -1,0 +1,3 @@
+ALTER TABLE users
+  DROP COLUMN provider,
+  ALTER COLUMN password SET NOT NULL;

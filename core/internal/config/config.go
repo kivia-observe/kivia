@@ -14,8 +14,13 @@ type Config struct {
 	JwtAccessTokenSecret string
 
 	JwtRefreshTokenSecret string
-	
+
 	RabbitMQConnectionUrl string
+
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+	GoogleFrontendURL  string
 }
 
 func Load() *Config {
@@ -26,6 +31,10 @@ func Load() *Config {
 		JwtAccessTokenSecret:  getEnv("JWT_ACCESS_TOKEN_SECRET"),
 		JwtRefreshTokenSecret: getEnv("JWT_REFRESH_TOKEN_SECRET"),
 		RabbitMQConnectionUrl: getEnv("RABBITMQ_CONNECTION_URL"),
+		GoogleClientID:        getEnv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:    getEnv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:     getEnv("GOOGLE_REDIRECT_URL"),
+		GoogleFrontendURL:     getEnv("GOOGLE_FRONTEND_URL"),
 	}
 
 }
