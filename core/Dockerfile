@@ -8,9 +8,9 @@ RUN go mod download
 
 COPY . .
 
-RUN cd ./cmd/dyno && go build -o app
+RUN cd ./cmd/core && go build -o app
 
-RUN mv ./cmd/dyno/app .
+RUN mv ./cmd/core/app .
 
 FROM alpine:latest
 
