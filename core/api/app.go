@@ -23,8 +23,8 @@ type Server struct {
 	app *fiber.App
 
 	config config.Config
-
-	logService log.Logservice
+	
+	cancel context.CancelFunc
 }
 
 func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
@@ -35,10 +35,10 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	logger := slog.Default()
 
-		server := sse.NewSSEServer(context.Background(), logger)
+	server := sse.NewSSEServer(context.Background(), logger)
 
-		server.SrvWg.Add(1)
-		go server.Run()
+	server.SrvWg.Add(1)
+	go server.Run()
 
 	db := database.Connect(cfg.DBUrl)
 
@@ -68,7 +68,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	userRepository := user.NewRepository(db)
 
-    authService := auth.NewAuthService(userRepository, refreshTokenRepository, cfg)
+	authService := auth.NewAuthService(userRepository, refreshTokenRepository, cfg)
 
 	_ = middleware.NewJwtMiddleware(*userRepository, cfg)
 
@@ -83,11 +83,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	// 	AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	// 	AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Dyno-Api-Key", "X-User-ID"},
 	// }))
-
-	app.Get("/hello", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "Hey"})
-	})
-
+	
 	app.Get("/health", func(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
@@ -142,18 +138,19 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	userRouter.Delete("/me", userHandler.DeleteUser)
 
 	userRouter.Put("/me", userHandler.UpdateUser)
+	
+	ctx, cancel := context.WithCancel(context.Background())
 
-	return &Server{app: app, config: cfg, logService: *logService}
+	if err := logService.LogConsumer(ctx); err != nil {
+		slog.Error("Error starting log consumer: ", err)
+	}
+	
+	return &Server{app: app, config: cfg, cancel: cancel}
 }
 
 func (s *Server) Start() error {
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := s.logService.LogConsumer(ctx); err != nil {
-		return err
-	}
-
+	defer s.cancel()
+	
 	return s.app.Listen(":" + s.config.Port)
 }

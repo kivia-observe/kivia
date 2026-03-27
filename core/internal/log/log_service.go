@@ -36,12 +36,6 @@ func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClie
 
 func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) error {
 
-	queue, err := s.rabbitMQClient.Channel.QueueDeclare("log_queue", true, false, false, false, nil)
-
-	if err != nil {
-		return err
-	}
-
 	apiKeyHash := sha256.Sum256([]byte(apiKey))
 
 	apiKeyHex := hex.EncodeToString(apiKeyHash[:])
@@ -78,7 +72,7 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 
 	s.eventServer.BroadcastToProject(projectId, logBytes)
 
-	err = s.rabbitMQClient.Channel.Publish("", queue.Name, false, false, amqp.Publishing{
+	err = s.rabbitMQClient.Channel.Publish("", "log_queue", false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         logBytes,
