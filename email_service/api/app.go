@@ -1,41 +1,56 @@
 package api
 
 import (
+	"context"
+	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/winnerx0/dyno/email_service/internal/config"
 	"github.com/winnerx0/dyno/email_service/internal/email"
+	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
 )
 
 type Server struct {
 	app *fiber.App
+
+	config config.Config
+	cancel context.CancelFunc
 }
 
-func NewServer() *Server {
+func NewServer(config config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
 
 	app := fiber.New(fiber.Config{
 		AppName: "Dyno - Email Service",
 	})
 
-	
-
-	app.Get("/hello", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "Hey"})
+	app.Get("/health", func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
 	})
 
-	emailService := email.NewEmailService()
+	emailService := email.NewEmailService(config.BrevoApiKey, rabbitMQClient)
 
 	emailHandler := email.NewEmailHandler(*emailService)
 
-	// v1 := app.Group("/email")
+	api := app.Group("/api")
 
-	emailRouter := app.Group("/email")
+	v1 := api.Group("/v1")
 
-	emailRouter.Post("send",  emailHandler.SendEmail)
+	emailRouter := v1.Group("/email")
 
-	return &Server{app: app}
+	emailRouter.Post("/send", emailHandler.SendEmail)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	if err := emailService.EmailConsumer(ctx); err != nil {
+		slog.Error("Error starting log consumer: ", err)
+	}
+
+	return &Server{app: app, config: config, cancel: cancel}
 }
 
 func (s *Server) Start() error {
 
-	return s.app.Listen(":" + "8082")
+	defer s.cancel()
+
+	return s.app.Listen(":" + s.config.Port)
 }
