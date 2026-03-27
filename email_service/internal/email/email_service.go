@@ -1,16 +1,14 @@
 package email
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
-	"net/http"
+	"os"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
+	mail "github.com/wneessen/go-mail"
 )
 
 type emailservice struct {
@@ -73,46 +71,28 @@ func (s emailservice) EmailConsumer(ctx context.Context) error {
 					log.Printf("Failed to unmarshal email: %v", err)
 					continue
 				}
-
-				reqBody := map[string]string{
-					"sender":      "eragbonikpeya@gmail.com",
-					"name":        "Dyno",
-					"subject":     email.Subject,
-					"htmlContent": email.Body,
-					"to":          email.To,
+				
+				message := mail.NewMsg()
+				if err := message.From(os.Getenv("SMTP_USER")); err != nil {
+					log.Fatalf("failed to set FROM address: %s", err)
 				}
+				if err := message.To(email.To); err != nil {
+					log.Fatalf("failed to set TO address: %s", err)
+				}
+				message.Subject(email.Subject)
+				message.SetBodyString(mail.TypeTextHTML, email.Body)
 
-				jsonBody, err := json.Marshal(reqBody)
-
+				// Deliver the mails via SMTP
+				client, err := mail.NewClient("smtp.gmail.com",
+					mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover), mail.WithTLSPortPolicy(mail.TLSMandatory),
+					mail.WithUsername(os.Getenv("SMTP_USER")), mail.WithPassword(os.Getenv("SMTP_PASS")),
+				)
 				if err != nil {
-					log.Printf("Failed to marshal email: %v", err)
-					continue
+					log.Fatalf("failed to create new mail delivery client: %s", err)
 				}
-
-				req, _ := http.NewRequest(http.MethodPost, "https://api.brevo.com/v3/smtp/email", bytes.NewReader(jsonBody))
-
-				req.Header.Add("api-key", s.brevoApiKey)
-				req.Header.Add("Content-Type", "application/json")
-				req.Header.Set("Accept", "application/json")
-
-				res, err := http.DefaultClient.Do(req)
-
-				if err != nil {
-					log.Printf("Failed to send email: %v", err)
-					continue
+				if err := client.DialAndSend(message); err != nil {
+					log.Fatalf("failed to deliver mail: %s", err)
 				}
-
-				defer res.Body.Close()
-
-				bodyBytes, err := io.ReadAll(res.Body)
-
-				if err != nil && err != io.EOF {
-					log.Printf("Failed to read email response: %v", err)
-					continue
-				}
-				fmt.Println(res)
-				fmt.Println(string(bodyBytes))
-
 				log.Printf("Sending email to: %s, subject: %s, body: %s", email.To, email.Subject, email.Body)
 
 			}

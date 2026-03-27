@@ -30,7 +30,7 @@ func NewRabbitMQClient(url string) *RabbitMQClient {
 
 func (r *RabbitMQClient) Consume(queue_name string) (<- chan amqp.Delivery, error){
 	
-	msgs, err := r.Channel.Consume(queue_name, "", false, false, false, false, nil)
+	msgs, err := r.Channel.Consume(queue_name, "", true, false, false, false, nil)
 	
 	if err != nil {
 		
