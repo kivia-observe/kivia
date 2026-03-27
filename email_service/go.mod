@@ -2,7 +2,10 @@ module github.com/winnerx0/dyno/email_service
 
 go 1.25.0
 
-require github.com/gofiber/fiber/v3 v3.1.0
+require (
+	github.com/gofiber/fiber/v3 v3.1.0
+	github.com/rabbitmq/amqp091-go v1.10.0
+)
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect

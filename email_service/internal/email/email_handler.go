@@ -8,24 +8,24 @@ type emailhandler struct {
 }
 
 func NewEmailHandler(emailservice emailservice) *emailhandler {
-	return &emailhandler{}
+	return &emailhandler{
+		emailservice: emailservice,
+	}
 }
 
 func (h *emailhandler) SendEmail(c fiber.Ctx) error {
-	type request struct {
-		To      string `json:"to"`
-		Subject string `json:"subject"`
-		Body    string `json:"body"`
+	
+	var emailRequest Email
+
+	if err := c.Bind().Body(&emailRequest); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Invalid request"})
+	}
+	
+	err := h.emailservice.SendEmail(emailRequest)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to send email"})
 	}
 
-	var req request
-
-	if err := c.JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
-	}
-
-	to := req.To
-	subject := req.Subject
-	body := req.Body
-	return h.emailservice.SendEmail(to, subject, body)
+	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Email processing"})
 }
