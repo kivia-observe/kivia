@@ -15,4 +15,6 @@ var (
 	ErrProjectNotFound = errors.New("Project not found")
 	
 	ErrSomethingWentWrong = errors.New("Something went wrong")
+	
+	ErrEmailExistsWithDifferentProvider = errors.New("Email exists with different provider")
 )

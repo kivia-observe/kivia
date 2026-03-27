@@ -2,6 +2,7 @@ package auth
 
 import (
 	"log"
+	"net/url"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -71,6 +72,45 @@ func (h authhandler) Refresh(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
+}
+
+func (h authhandler) GoogleRedirect(c fiber.Ctx) error {
+	cfg := h.service.config
+
+	params := url.Values{
+		"client_id":     {cfg.GoogleClientID},
+		"redirect_uri":  {cfg.GoogleRedirectURL},
+		"response_type": {"code"},
+		"scope":         {"openid email profile"},
+		"access_type":   {"offline"},
+		"prompt":        {"consent"},
+	}
+
+	return c.Redirect().To("https://accounts.google.com/o/oauth2/v2/auth?" + params.Encode())
+}
+
+func (h authhandler) GoogleCallback(c fiber.Ctx) error {
+	code := c.Query("code")
+	if code == "" {
+		return c.Redirect().To(h.service.config.GoogleFrontendURL + "/login?error=missing_code")
+	}
+
+	response, err := h.service.GoogleLogin(code)
+	if err != nil {
+		log.Printf("Google login error: %v", err)
+		errMsg := "auth_failed"
+		if err.Error() == "EMAIL_EXISTS_WITH_DIFFERENT_PROVIDER" {
+			errMsg = "email_exists"
+		}
+		return c.Redirect().To(h.service.config.GoogleFrontendURL + "/login?error=" + errMsg)
+	}
+
+	params := url.Values{
+		"access_token":  {response.AccessToken},
+		"refresh_token": {response.RefreshToken},
+	}
+
+	return c.Redirect().To(h.service.config.GoogleFrontendURL + "/auth/google/callback?" + params.Encode())
 }
 
 func (h authhandler) ValidateToken(c fiber.Ctx) error {

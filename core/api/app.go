@@ -30,7 +30,8 @@ type Server struct {
 func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
 
 	app := fiber.New(fiber.Config{
-		AppName: "Dyno",
+		AppName:        "Dyno",
+		ReadBufferSize: 8192,
 	})
 
 	logger := slog.Default()
@@ -104,6 +105,10 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	authRouter.All("/validate", authhandler.ValidateToken)
 
 	authRouter.Post("/refresh", authhandler.Refresh)
+
+	authRouter.Get("/google", authhandler.GoogleRedirect)
+	
+	authRouter.Get("/google/callback", authhandler.GoogleCallback)
 
 	// project routes
 	projectRouter := v1.Group("/projects", middleware.AuthMiddlware)
