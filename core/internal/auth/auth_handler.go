@@ -25,15 +25,16 @@ func (h authhandler) Register(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := h.service.Register(userRequest); err != nil {
+	response, err := h.service.Register(userRequest)
 
+	if err != nil {
 		if err.Error() == "ALREADY_EXISTS" {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User with email already exists"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created successfully"})
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 func (h authhandler) Login(c fiber.Ctx) error {
@@ -47,9 +48,11 @@ func (h authhandler) Login(c fiber.Ctx) error {
 	 response, err := h.service.Login(loginRequest);
 
 	if err != nil {
-
 		if err.Error() == "NOT_EXISTS" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid credentials"})
+		}
+		if err.Error() == "NOT_VERIFIED" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "NOT_VERIFIED", "email": loginRequest.Email})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -72,6 +75,50 @@ func (h authhandler) Refresh(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
+}
+
+func (h authhandler) VerifyOTP(c fiber.Ctx) error {
+	var req VerifyOTPRequest
+
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if err := h.service.VerifyOTP(req); err != nil {
+		switch err.Error() {
+		case "OTP_EXPIRED":
+			return c.Status(fiber.StatusGone).JSON(fiber.Map{"error": "Verification code has expired. Please request a new one."})
+		case "TOO_MANY_ATTEMPTS":
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Too many attempts. Please request a new code."})
+		case "INVALID_OTP":
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid verification code"})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Email verified successfully"})
+}
+
+func (h authhandler) ResendOTP(c fiber.Ctx) error {
+	var req ResendOTPRequest
+
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if err := h.service.ResendOTP(req); err != nil {
+		switch err.Error() {
+		case "RESEND_TOO_SOON":
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Please wait before requesting a new code"})
+		case "ALREADY_VERIFIED":
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email is already verified"})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Verification code sent"})
 }
 
 func (h authhandler) GoogleRedirect(c fiber.Ctx) error {

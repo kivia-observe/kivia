@@ -2,12 +2,14 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"time"
@@ -15,23 +17,30 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/winnerx0/dyno/internal/config"
+	emailverification "github.com/winnerx0/dyno/internal/email_verification"
+	"github.com/winnerx0/dyno/internal/rabbitmq"
 	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
 	"github.com/winnerx0/dyno/internal/user"
 	"github.com/winnerx0/dyno/internal/utils"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type authservice struct {
-	userrepo         *user.Repository
-	refreshTokenRepo *refreshtoken.Repository
-	config           config.Config
+	userrepo              *user.Repository
+	refreshTokenRepo      *refreshtoken.Repository
+	emailVerificationRepo *emailverification.Repository
+	rabbitMQClient        *rabbitmq.RabbitMQClient
+	config                config.Config
 }
 
-func NewAuthService(userrepo *user.Repository, refreshTokenRepo *refreshtoken.Repository, config config.Config) *authservice {
+func NewAuthService(userrepo *user.Repository, refreshTokenRepo *refreshtoken.Repository, emailVerificationRepo *emailverification.Repository, rabbitMQClient *rabbitmq.RabbitMQClient, config config.Config) *authservice {
 	return &authservice{
-		userrepo:         userrepo,
-		refreshTokenRepo: refreshTokenRepo,
-		config:           config,
+		userrepo:              userrepo,
+		refreshTokenRepo:      refreshTokenRepo,
+		emailVerificationRepo: emailVerificationRepo,
+		rabbitMQClient:        rabbitMQClient,
+		config:                config,
 	}
 }
 
@@ -46,32 +55,142 @@ type ValidateResponse struct {
 	Role   string `json:"role"`
 }
 
-func (s authservice) Register(createUserRequest createUserRequest) error {
+func (s authservice) Register(createUserRequest createUserRequest) (*RegisterResponse, error) {
 
 	if exists := s.userrepo.ExistsByEmail(createUserRequest.Email); exists {
-		return errors.New("ALREADY_EXISTS")
+		return nil, errors.New("ALREADY_EXISTS")
 	}
 
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(createUserRequest.Password), 10)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	user := user.User{
+	newUser := user.User{
 		Id:       uuid.NewString(),
 		Email:    createUserRequest.Email,
 		Password: string(passwordBytes),
 		Name:     createUserRequest.Name,
 		Provider: "local",
+		Verified: false,
 		JoinedAt: time.Now(),
 	}
 
-	if err := s.userrepo.Save(user); err != nil {
+	if err := s.userrepo.Save(newUser); err != nil {
+		return nil, err
+	}
+
+	if err := s.sendOTP(newUser.Id, createUserRequest.Email); err != nil {
+		return nil, err
+	}
+
+	return &RegisterResponse{
+		Email:   createUserRequest.Email,
+		Message: "Verification code sent to your email",
+	}, nil
+}
+
+func (s authservice) generateOTP() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(999999))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+func (s authservice) sendOTP(userId, email string) error {
+	otp, err := s.generateOTP()
+	if err != nil {
 		return err
 	}
 
+	hash := sha256.Sum256([]byte(otp))
+
+	// Delete any existing verification records for this user
+	s.emailVerificationRepo.DeleteByUserId(userId)
+
+	ev := emailverification.EmailVerification{
+		Id:        uuid.NewString(),
+		Email:     email,
+		OtpHash:   hex.EncodeToString(hash[:]),
+		Attempts:  0,
+		ExpiresAt: time.Now().Add(10 * time.Minute),
+		CreatedAt: time.Now(),
+		UserId:    userId,
+	}
+
+	if err := s.emailVerificationRepo.Save(ev); err != nil {
+		return err
+	}
+
+	emailMsg := map[string]string{
+		"to":      email,
+		"subject": "Verify your Dyno account",
+		"body":    fmt.Sprintf("<h2>Your verification code</h2><p>Use the following code to verify your account:</p><h1 style=\"letter-spacing: 8px; font-size: 36px;\">%s</h1><p>This code expires in 10 minutes.</p>", otp),
+	}
+
+	emailBytes, err := json.Marshal(emailMsg)
+	if err != nil {
+		return err
+	}
+
+	return s.rabbitMQClient.Channel.Publish("", "email_queue", false, false, amqp.Publishing{
+		ContentType:  "application/json",
+		DeliveryMode: amqp.Persistent,
+		Body:         emailBytes,
+	})
+}
+
+func (s authservice) VerifyOTP(req VerifyOTPRequest) error {
+	u := s.userrepo.FindByEmail(req.Email)
+	if u.Id == "" {
+		return errors.New("NOT_EXISTS")
+	}
+
+	ev := s.emailVerificationRepo.FindByEmail(req.Email)
+	if ev.Id == "" {
+		return errors.New("OTP_EXPIRED")
+	}
+
+	if ev.ExpiresAt.Before(time.Now()) {
+		return errors.New("OTP_EXPIRED")
+	}
+
+	if ev.Attempts >= 5 {
+		return errors.New("TOO_MANY_ATTEMPTS")
+	}
+
+	hash := sha256.Sum256([]byte(req.OTP))
+	if hex.EncodeToString(hash[:]) != ev.OtpHash {
+		s.emailVerificationRepo.IncrementAttempts(ev.Id)
+		return errors.New("INVALID_OTP")
+	}
+
+	if err := s.userrepo.SetVerified(u.Id); err != nil {
+		return err
+	}
+
+	s.emailVerificationRepo.DeleteByUserId(u.Id)
 	return nil
+}
+
+func (s authservice) ResendOTP(req ResendOTPRequest) error {
+	u := s.userrepo.FindByEmail(req.Email)
+	if u.Id == "" {
+		return errors.New("NOT_EXISTS")
+	}
+
+	if u.Verified {
+		return errors.New("ALREADY_VERIFIED")
+	}
+
+	ev := s.emailVerificationRepo.FindByEmail(req.Email)
+	if ev.Id != "" && time.Since(ev.CreatedAt) < 60*time.Second {
+		return errors.New("RESEND_TOO_SOON")
+	}
+
+	return s.sendOTP(u.Id, req.Email)
 }
 
 func (s authservice) Login(loginRequest LoginRequest) (*AuthResponse, error) {
@@ -86,6 +205,10 @@ func (s authservice) Login(loginRequest LoginRequest) (*AuthResponse, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if !user.Verified && user.Provider == "local" {
+		return nil, errors.New("NOT_VERIFIED")
 	}
 
 	refreshTokenExpiresAt := time.Now().Add(time.Hour * 24 * 30)
@@ -307,12 +430,13 @@ func (s authservice) GoogleLogin(code string) (*AuthResponse, error) {
 	}
 
 	newUser := user.User{
-		Id:       uuid.NewString(),
-		Email:    googleUser.Email,
-		Name:     googleUser.Name,
+		Id:             uuid.NewString(),
+		Email:          googleUser.Email,
+		Name:           googleUser.Name,
 		ProfilePicture: googleUser.Picture,
-		Provider: "google",
-		JoinedAt: time.Now(),
+		Provider:       "google",
+		Verified:       true,
+		JoinedAt:       time.Now(),
 	}
 
 	if err := s.userrepo.Save(newUser); err != nil {

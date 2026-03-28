@@ -10,6 +10,7 @@ import (
 	"github.com/winnerx0/dyno/internal/auth"
 	"github.com/winnerx0/dyno/internal/config"
 	"github.com/winnerx0/dyno/internal/database"
+	emailverification "github.com/winnerx0/dyno/internal/email_verification"
 	"github.com/winnerx0/dyno/internal/log"
 	"github.com/winnerx0/dyno/internal/middleware"
 	"github.com/winnerx0/dyno/internal/project"
@@ -69,7 +70,9 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	userRepository := user.NewRepository(db)
 
-	authService := auth.NewAuthService(userRepository, refreshTokenRepository, cfg)
+	emailVerificationRepository := emailverification.NewRepository(db)
+
+	authService := auth.NewAuthService(userRepository, refreshTokenRepository, emailVerificationRepository, rabbitMQClient, cfg)
 
 	_ = middleware.NewJwtMiddleware(*userRepository, cfg)
 
@@ -109,6 +112,10 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	authRouter.Get("/google", authhandler.GoogleRedirect)
 	
 	authRouter.Get("/google/callback", authhandler.GoogleCallback)
+
+	authRouter.Post("/verify-otp", authhandler.VerifyOTP)
+
+	authRouter.Post("/resend-otp", authhandler.ResendOTP)
 
 	// project routes
 	projectRouter := v1.Group("/projects", middleware.AuthMiddlware)

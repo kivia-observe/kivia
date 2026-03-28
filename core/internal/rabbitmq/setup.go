@@ -9,5 +9,17 @@ func (c *RabbitMQClient) SetupQueues() error {
 		false, // no-wait
 		nil,
 	)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Channel.QueueDeclare(
+		"email_queue",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
 	return err
 }
