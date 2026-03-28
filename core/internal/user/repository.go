@@ -19,10 +19,10 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r Repository) Save(user User) error {
 
 	query := `
-	INSERT INTO users (id, name, email, password, profile_picture, provider, joined_at) VALUES ($1, $2, $3, $4, $5, $6, $7)
+	INSERT INTO users (id, name, email, password, profile_picture, provider, verified, joined_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
-	_, err := r.db.Exec(context.Background(), query, user.Id, user.Name, user.Email, user.Password, user.ProfilePicture, user.Provider, user.JoinedAt)
+	_, err := r.db.Exec(context.Background(), query, user.Id, user.Name, user.Email, user.Password, user.ProfilePicture, user.Provider, user.Verified, user.JoinedAt)
 
 	return err
 }
@@ -61,13 +61,13 @@ func (r Repository) FindByEmail(email string) User {
 	var user User
 
 	query := `
-		SELECT id, name, email, COALESCE(password, ''), profile_picture, COALESCE(provider, 'local'), joined_at FROM users
+		SELECT id, name, email, COALESCE(password, ''), profile_picture, COALESCE(provider, 'local'), verified, joined_at FROM users
 		WHERE email = $1
 	`
 
 	row := r.db.QueryRow(context.Background(), query, email)
 
-	row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ProfilePicture, &user.Provider, &user.JoinedAt)
+	row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ProfilePicture, &user.Provider, &user.Verified, &user.JoinedAt)
 
 	return user
 }
@@ -77,14 +77,20 @@ func (r Repository) FindById(id string) User {
 	var user User
 
 	query := `
-		SELECT id, name, email, COALESCE(password, ''), profile_picture, COALESCE(provider, 'local'), joined_at FROM users
+		SELECT id, name, email, COALESCE(password, ''), profile_picture, COALESCE(provider, 'local'), verified, joined_at FROM users
 		WHERE id = $1
 	`
 
 	row := r.db.QueryRow(context.Background(), query, id)
-	row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ProfilePicture, &user.Provider, &user.JoinedAt)
+	row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.ProfilePicture, &user.Provider, &user.Verified, &user.JoinedAt)
 
 	return user
+}
+
+func (r Repository) SetVerified(userId string) error {
+	query := `UPDATE users SET verified = true WHERE id = $1`
+	_, err := r.db.Exec(context.Background(), query, userId)
+	return err
 }
 
 func (r Repository) DeleteById(id string) error {

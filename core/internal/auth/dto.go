@@ -20,6 +20,20 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type RegisterResponse struct {
+	Email   string `json:"email"`
+	Message string `json:"message"`
+}
+
+type VerifyOTPRequest struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
+}
+
+type ResendOTPRequest struct {
+	Email string `json:"email"`
+}
+
 type GoogleAuthRequest struct {
 	Code string `json:"code"`
 }

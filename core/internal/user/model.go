@@ -10,5 +10,6 @@ type User struct {
 	Role           string    `json:"role"`
 	ProfilePicture string    `json:"profile_picture"`
 	Provider       string    `json:"provider"`
+	Verified       bool      `json:"verified"`
 	JoinedAt       time.Time `json:"joined_at"`
 }
