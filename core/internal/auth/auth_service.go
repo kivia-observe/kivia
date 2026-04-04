@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -16,13 +17,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/winnerx0/dyno/internal/config"
 	emailverification "github.com/winnerx0/dyno/internal/email_verification"
 	"github.com/winnerx0/dyno/internal/rabbitmq"
 	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
 	"github.com/winnerx0/dyno/internal/user"
 	"github.com/winnerx0/dyno/internal/utils"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -120,14 +121,19 @@ func (s authservice) sendOTP(userId, email string) error {
 		UserId:    userId,
 	}
 
+	log.Printf("Saving email verification for user %s", userId)
+	
 	if err := s.emailVerificationRepo.Save(ev); err != nil {
 		return err
 	}
+	
+	log.Printf("Email verification saved for user %s", userId)
 
 	emailMsg := map[string]string{
 		"to":      email,
 		"subject": "Verify your Dyno account",
-		"body":    fmt.Sprintf("<h2>Your verification code</h2><p>Use the following code to verify your account:</p><h1 style=\"letter-spacing: 8px; font-size: 36px;\">%s</h1><p>This code expires in 10 minutes.</p>", otp),
+		"text":    fmt.Sprintf("Your verification code is: %s", otp),
+		"html":    fmt.Sprintf("<h2>Your verification code</h2><p>Use the following code to verify your account:</p><h1 style=\"letter-spacing: 8px; font-size: 36px;\">%s</h1><p>This code expires in 10 minutes.</p>", otp),
 	}
 
 	emailBytes, err := json.Marshal(emailMsg)
