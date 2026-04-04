@@ -6,9 +6,7 @@ services:
       - '8081:8081'
     container_name: core
     env_file:
-      - ${CORE_ENV_FILE}
-    environment:
-        RABBITMQ_HOST: rabbitmq:5672
+      - ./core/.env
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -33,7 +31,7 @@ services:
   nginx:
     build: './nginx'
     ports:
-      - '8080:5000'
+      - '8080:8080'
     depends_on:
       core:
         condition: service_healthy
