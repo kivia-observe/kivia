@@ -14,10 +14,12 @@ import (
 type emailservice struct {
 	brevoApiKey    string
 	rabbitMQClient *rabbitmq.RabbitMQClient
+	senderEmail    string
+	senderName     string
 }
 
-func NewEmailService(brevoApiKey string, rabbitMQClient *rabbitmq.RabbitMQClient) *emailservice {
-	return &emailservice{brevoApiKey: brevoApiKey, rabbitMQClient: rabbitMQClient}
+func NewEmailService(brevoApiKey string, senderEmail string, senderName string, rabbitMQClient *rabbitmq.RabbitMQClient) *emailservice {
+	return &emailservice{brevoApiKey: brevoApiKey, senderEmail: senderEmail, senderName: senderName, rabbitMQClient: rabbitMQClient}
 }
 
 func (s emailservice) SendEmail(email Email) error {
@@ -29,8 +31,8 @@ func (s emailservice) SendEmail(email Email) error {
 	}
 
 	err = s.rabbitMQClient.Channel.Publish("", "email_queue", false, false, amqp.Publishing{
-		ContentType: "application/json",
-		Body: emailBytes,
+		ContentType:  "application/json",
+		Body:         emailBytes,
 		DeliveryMode: amqp.Persistent,
 	})
 
@@ -77,8 +79,8 @@ func (s emailservice) EmailConsumer(ctx context.Context) error {
 						Email string `json:"email"`
 						Name  string `json:"name"`
 					}{
-						Email: "noreoly@dyno.com",
-						Name: "Dyno",
+						Email: s.senderEmail,
+						Name:  s.senderName,
 					},
 					"to": []struct {
 						Email string `json:"email"`
