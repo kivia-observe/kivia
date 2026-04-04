@@ -1,14 +1,14 @@
 package email
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log"
-	"os"
+	"net/http"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
-	mail "github.com/wneessen/go-mail"
 )
 
 type emailservice struct {
@@ -21,9 +21,9 @@ func NewEmailService(brevoApiKey string, rabbitMQClient *rabbitmq.RabbitMQClient
 }
 
 func (s emailservice) SendEmail(email Email) error {
-	
+
 	emailBytes, err := json.Marshal(email)
-	
+
 	if err != nil {
 		return err
 	}
@@ -33,16 +33,16 @@ func (s emailservice) SendEmail(email Email) error {
 		Body: emailBytes,
 		DeliveryMode: amqp.Persistent,
 	})
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 func (s emailservice) EmailConsumer(ctx context.Context) error {
-	
+
 	log.Println("sending the email")
 
 	messages, err := s.rabbitMQClient.Consume("email_queue")
@@ -71,29 +71,54 @@ func (s emailservice) EmailConsumer(ctx context.Context) error {
 					log.Printf("Failed to unmarshal email: %v", err)
 					continue
 				}
-				
-				message := mail.NewMsg()
-				if err := message.From(os.Getenv("SMTP_USER")); err != nil {
-					log.Fatalf("failed to set FROM address: %s", err)
-				}
-				if err := message.To(email.To); err != nil {
-					log.Fatalf("failed to set TO address: %s", err)
-				}
-				message.Subject(email.Subject)
-				message.SetBodyString(mail.TypeTextHTML, email.Body)
 
-				// Deliver the mails via SMTP
-				client, err := mail.NewClient("smtp.gmail.com",
-					mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover), mail.WithTLSPortPolicy(mail.TLSMandatory),
-					mail.WithUsername(os.Getenv("SMTP_USER")), mail.WithPassword(os.Getenv("SMTP_PASS")),
-				)
+				data, err := json.Marshal(map[string]any{
+					"sender": struct {
+						Email string `json:"email"`
+						Name  string `json:"name"`
+					}{
+						Email: "noreoly@dyno.com",
+						Name: "Dyno",
+					},
+					"to": []struct {
+						Email string `json:"email"`
+					}{
+						{Email: email.To},
+					},
+					"subject":     email.Subject,
+					"htmlContent": email.Html,
+					"textContent": email.Text,
+				})
+
 				if err != nil {
-					log.Fatalf("failed to create new mail delivery client: %s", err)
+					log.Printf("Failed to marshal email: %v", err)
+					continue
 				}
-				if err := client.DialAndSend(message); err != nil {
-					log.Fatalf("failed to deliver mail: %s", err)
+
+				req, err := http.NewRequest(http.MethodPost, "https://api.brevo.com/v3/smtp/email", bytes.NewReader(data))
+
+				if err != nil {
+					log.Printf("Failed to create request: %v", err)
+					continue
 				}
-				log.Printf("Sending email to: %s, subject: %s, body: %s", email.To, email.Subject, email.Body)
+
+				req.Header.Set("api-key", s.brevoApiKey)
+				req.Header.Set("Content-Type", "application/json")
+
+				client := &http.Client{}
+				resp, err := client.Do(req)
+
+				if err != nil {
+					log.Printf("Failed to send email: %v", err)
+					continue
+				}
+
+				if resp.StatusCode != http.StatusCreated {
+					log.Printf("Failed to send email: %s", resp.Status)
+					continue
+				}
+
+				log.Printf("Sending email to: %s, subject: %s, body: %s", email.To, email.Subject, email.Text)
 
 			}
 		}
