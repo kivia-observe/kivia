@@ -27,7 +27,7 @@ func NewServer(config config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *S
 		return c.SendStatus(fiber.StatusOK)
 	})
 
-	emailService := email.NewEmailService(config.BrevoApiKey, rabbitMQClient)
+	emailService := email.NewEmailService(config.BrevoApiKey, config.SenderEmail, config.SenderName, rabbitMQClient)
 
 	emailHandler := email.NewEmailHandler(*emailService)
 
