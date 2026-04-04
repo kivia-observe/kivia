@@ -3,5 +3,6 @@ package email
 type Email struct {
 	To      string `json:"to"`
 	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	Html    string `json:"html"`
+	Text    string `json:"text"`
 }
