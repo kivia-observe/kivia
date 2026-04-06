@@ -5,3 +5,5 @@ dyno_service/.env.dev
 email_service/.env
 
 /frontend
+/kivia-sdk-go
+/kivia-sdk-js
