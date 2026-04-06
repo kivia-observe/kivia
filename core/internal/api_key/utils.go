@@ -14,5 +14,5 @@ func generateAPIKey() (string, error) {
 
 	key := base64.RawURLEncoding.EncodeToString(bytes)
 
-	return "dyno_" + key, nil
+	return "kivia_" + key, nil
 }

@@ -5,8 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"github.com/winnerx0/dyno/internal/utils"
-	"github.com/winnerx0/dyno/internal/validator"
+	"github.com/winnerx0/kivia/internal/utils"
+	"github.com/winnerx0/kivia/internal/validator"
 )
 
 type apiKeyHandler struct {

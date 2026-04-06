@@ -1,4 +1,4 @@
-module github.com/winnerx0/dyno
+module github.com/winnerx0/kivia
 
 go 1.25.0
 

@@ -5,9 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/winnerx0/dyno/email_service/internal/config"
-	"github.com/winnerx0/dyno/email_service/internal/email"
-	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
+	"github.com/winnerx0/kivia/email_service/internal/config"
+	"github.com/winnerx0/kivia/email_service/internal/email"
+	"github.com/winnerx0/kivia/email_service/internal/rabbitmq"
 )
 
 type Server struct {

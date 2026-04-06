@@ -7,8 +7,8 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/winnerx0/dyno/internal/project"
-	"github.com/winnerx0/dyno/internal/utils"
+	"github.com/winnerx0/kivia/internal/project"
+	"github.com/winnerx0/kivia/internal/utils"
 )
 
 type apiKeyService struct {

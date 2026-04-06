@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/winnerx0/dyno/email_service/api"
-	"github.com/winnerx0/dyno/email_service/internal/config"
-	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
+	"github.com/winnerx0/kivia/email_service/api"
+	"github.com/winnerx0/kivia/email_service/internal/config"
+	"github.com/winnerx0/kivia/email_service/internal/rabbitmq"
 )
 
 func main() {

@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
-	apikey "github.com/winnerx0/dyno/internal/api_key"
-	"github.com/winnerx0/dyno/internal/rabbitmq"
-	"github.com/winnerx0/dyno/internal/sse"
+	apikey "github.com/winnerx0/kivia/internal/api_key"
+	"github.com/winnerx0/kivia/internal/rabbitmq"
+	"github.com/winnerx0/kivia/internal/sse"
 )
 
 type Logservice struct {

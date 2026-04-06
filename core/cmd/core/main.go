@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"github.com/winnerx0/dyno/api"
-	"github.com/winnerx0/dyno/internal/config"
-	"github.com/winnerx0/dyno/internal/rabbitmq"
+	"github.com/winnerx0/kivia/api"
+	"github.com/winnerx0/kivia/internal/config"
+	"github.com/winnerx0/kivia/internal/rabbitmq"
 
     "github.com/golang-migrate/migrate/v4"
     _"github.com/golang-migrate/migrate/v4/database/postgres"

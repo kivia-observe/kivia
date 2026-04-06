@@ -8,10 +8,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	apikey "github.com/winnerx0/dyno/internal/api_key"
-	apikeymocks "github.com/winnerx0/dyno/internal/api_key/mocks"
-	projectmocks "github.com/winnerx0/dyno/internal/project/mocks"
-	"github.com/winnerx0/dyno/internal/utils"
+	apikey "github.com/winnerx0/kivia/internal/api_key"
+	apikeymocks "github.com/winnerx0/kivia/internal/api_key/mocks"
+	projectmocks "github.com/winnerx0/kivia/internal/project/mocks"
+	"github.com/winnerx0/kivia/internal/utils"
 )
 
 func TestCreateApiKey_Success(t *testing.T) {

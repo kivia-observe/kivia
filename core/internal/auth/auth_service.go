@@ -18,12 +18,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/winnerx0/dyno/internal/config"
-	emailverification "github.com/winnerx0/dyno/internal/email_verification"
-	"github.com/winnerx0/dyno/internal/rabbitmq"
-	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
-	"github.com/winnerx0/dyno/internal/user"
-	"github.com/winnerx0/dyno/internal/utils"
+	"github.com/winnerx0/kivia/internal/config"
+	emailverification "github.com/winnerx0/kivia/internal/email_verification"
+	"github.com/winnerx0/kivia/internal/rabbitmq"
+	refreshtoken "github.com/winnerx0/kivia/internal/refresh_token"
+	"github.com/winnerx0/kivia/internal/user"
+	"github.com/winnerx0/kivia/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -131,7 +131,7 @@ func (s authservice) sendOTP(userId, email string) error {
 
 	emailMsg := map[string]string{
 		"to":      email,
-		"subject": "Verify your Dyno account",
+		"subject": "Verify your Kivia account",
 		"text":    fmt.Sprintf("Your verification code is: %s", otp),
 		"html":    fmt.Sprintf("<h2>Your verification code</h2><p>Use the following code to verify your account:</p><h1 style=\"letter-spacing: 8px; font-size: 36px;\">%s</h1><p>This code expires in 10 minutes.</p>", otp),
 	}

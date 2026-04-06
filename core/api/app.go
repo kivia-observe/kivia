@@ -6,18 +6,18 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	_ "github.com/gofiber/fiber/v3/middleware/cors"
-	apikey "github.com/winnerx0/dyno/internal/api_key"
-	"github.com/winnerx0/dyno/internal/auth"
-	"github.com/winnerx0/dyno/internal/config"
-	"github.com/winnerx0/dyno/internal/database"
-	emailverification "github.com/winnerx0/dyno/internal/email_verification"
-	"github.com/winnerx0/dyno/internal/log"
-	"github.com/winnerx0/dyno/internal/middleware"
-	"github.com/winnerx0/dyno/internal/project"
-	"github.com/winnerx0/dyno/internal/rabbitmq"
-	refreshtoken "github.com/winnerx0/dyno/internal/refresh_token"
-	"github.com/winnerx0/dyno/internal/sse"
-	"github.com/winnerx0/dyno/internal/user"
+	apikey "github.com/winnerx0/kivia/internal/api_key"
+	"github.com/winnerx0/kivia/internal/auth"
+	"github.com/winnerx0/kivia/internal/config"
+	"github.com/winnerx0/kivia/internal/database"
+	emailverification "github.com/winnerx0/kivia/internal/email_verification"
+	"github.com/winnerx0/kivia/internal/log"
+	"github.com/winnerx0/kivia/internal/middleware"
+	"github.com/winnerx0/kivia/internal/project"
+	"github.com/winnerx0/kivia/internal/rabbitmq"
+	refreshtoken "github.com/winnerx0/kivia/internal/refresh_token"
+	"github.com/winnerx0/kivia/internal/sse"
+	"github.com/winnerx0/kivia/internal/user"
 )
 
 type Server struct {
@@ -31,7 +31,7 @@ type Server struct {
 func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
 
 	app := fiber.New(fiber.Config{
-		AppName:        "Dyno",
+		AppName:        "Kivia",
 		ReadBufferSize: 8192,
 	})
 
