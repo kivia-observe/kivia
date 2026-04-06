@@ -1,4 +1,4 @@
-module github.com/winnerx0/dyno/email_service
+module github.com/winnerx0/kivia/email_service
 
 go 1.25.0
 

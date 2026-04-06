@@ -2,7 +2,7 @@ package mocks
 
 import (
 	"github.com/stretchr/testify/mock"
-	"github.com/winnerx0/dyno/internal/project"
+	"github.com/winnerx0/kivia/internal/project"
 )
 
 

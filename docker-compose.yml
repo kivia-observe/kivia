@@ -55,13 +55,13 @@ services:
     image: 'postgres:16-alpine'
     ports:
       - '5000:5432'
-    container_name: dyno_db
+    container_name: kivia_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: dyno
+      POSTGRES_DB: kivia
     volumes:
-      - dyno_db_data:/var/lib/postgresql/data
+      - kivia_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -69,4 +69,4 @@ services:
       retries: 5
       start_period: 10s
 volumes:
-  dyno_db_data:
+  kivia_db_data:

@@ -2,7 +2,7 @@ package mocks
 
 import (
 	"github.com/stretchr/testify/mock"
-	apikey "github.com/winnerx0/dyno/internal/api_key"
+	apikey "github.com/winnerx0/kivia/internal/api_key"
 )
 
 type MockApiKeyRepository struct {

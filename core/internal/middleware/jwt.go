@@ -3,8 +3,8 @@ package middleware
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/winnerx0/dyno/internal/config"
-	"github.com/winnerx0/dyno/internal/user"
+	"github.com/winnerx0/kivia/internal/config"
+	"github.com/winnerx0/kivia/internal/user"
 )
 
 type jwtMiddleware struct {

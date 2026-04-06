@@ -25,7 +25,7 @@ type Config struct {
 func Load() *Config {
 
 	return &Config{
-		DBUrl:                 getEnv("DATABASE_URL", "postgresql://postgres:password@localhost:5000/dyno"),
+		DBUrl:                 getEnv("DATABASE_URL", "postgresql://postgres:password@localhost:5000/kivia"),
 		Port:                  getEnv("PORT", "8081"),
 		JwtAccessTokenSecret:  getEnv("JWT_ACCESS_TOKEN_SECRET", "e057eb5d0604805f2809b58c892cc76ae7f6dffffee8e2d4f2807a4d8c86dfac"),
 		JwtRefreshTokenSecret: getEnv("JWT_REFRESH_TOKEN_SECRET", "74b8fa85124b7cd11dfe34e33fdd6063711eab4d950af94affd0b50fe4ab3d85"),

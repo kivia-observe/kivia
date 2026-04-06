@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/winnerx0/dyno/email_service/internal/rabbitmq"
+	"github.com/winnerx0/kivia/email_service/internal/rabbitmq"
 )
 
 type emailservice struct {

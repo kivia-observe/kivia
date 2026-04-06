@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/winnerx0/dyno/internal/utils"
+	"github.com/winnerx0/kivia/internal/utils"
 )
 
 type Repository struct {

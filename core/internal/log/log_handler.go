@@ -2,7 +2,7 @@ package log
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/winnerx0/dyno/internal/validator"
+	"github.com/winnerx0/kivia/internal/validator"
 )
 
 type loghandler struct {
@@ -17,7 +17,7 @@ func NewLogHandler(service Logservice) *loghandler {
 
 func (h loghandler) CreateLog(c fiber.Ctx) error {
 	
-	apiKey := c.Get("X-dyno-api-key")
+	apiKey := c.Get("X-kivia-api-key")
 
 	var createLogRequest createLogRequest
 

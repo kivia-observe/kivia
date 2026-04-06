@@ -3,7 +3,7 @@ package middleware
 import (
 
 	"github.com/gofiber/fiber/v3"
-	apikey "github.com/winnerx0/dyno/internal/api_key"
+	apikey "github.com/winnerx0/kivia/internal/api_key"
 )
 
 type apiKeyMiddleware struct {
@@ -18,7 +18,7 @@ func NewApiKeyMiddleware(repo *apikey.Repository) *apiKeyMiddleware {
 
 func (m apiKeyMiddleware) ApiKeyMiddleware(c fiber.Ctx) error {
 
-	apiKey := c.Get("X-dyno-api-key")
+	apiKey := c.Get("X-kivia-api-key")
 
 	if apiKey == "" {
 		return c.Status(403).JSON(fiber.Map{"error": "Invaild API Key"})
