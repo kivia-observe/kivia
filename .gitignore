@@ -1,1 +1,9 @@
-.env
+kivia_service/.env.local
+
+kivia_service/.env.dev
+
+email_service/.env
+
+/frontend
+/kivia-sdk-go
+/kivia-sdk-js

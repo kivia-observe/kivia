@@ -1,0 +1,72 @@
+services:
+
+  core:
+    build: './core'
+    ports:
+      - '8081:8081'
+    container_name: core
+    env_file:
+      - ./core/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://core:8081/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+  email_service:
+    build: './email_service'
+    container_name: email_service
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./email_service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  nginx:
+    build: './nginx'
+    ports:
+      - '8080:8080'
+    depends_on:
+      core:
+        condition: service_healthy
+      email_service:
+        condition: service_started
+  rabbitmq:
+    image: 'rabbitmq:latest'
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 5s
+      retries: 5
+
+  postgres:
+    image: 'postgres:16-alpine'
+    ports:
+      - '5000:5432'
+    container_name: kivia_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: kivia
+    volumes:
+      - kivia_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+volumes:
+  kivia_db_data:
