@@ -1,0 +1,3 @@
+ALTER TABLE users
+  ADD COLUMN provider VARCHAR(20) NOT NULL DEFAULT 'local',
+  ALTER COLUMN password DROP NOT NULL;

@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS api_keys (
+    id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+    name VARCHAR(15) NOT NULL CHECK (LENGTH(name) > 3),
+    key VARCHAR(255) NOT NULL,
+    user_id UUID NOT NULL,
+    project_id UUID NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
