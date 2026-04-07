@@ -20,7 +20,7 @@ type Server struct {
 func NewServer(config config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Server {
 
 	app := fiber.New(fiber.Config{
-		AppName: "Dyno - Email Service",
+		AppName: "Kivia - Email Service",
 	})
 
 	app.Get("/health", func(c fiber.Ctx) error {

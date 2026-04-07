@@ -1,5 +1,5 @@
 clear
 
-cd cmd/dyno
+cd cmd/kivia
 
 go run main.go

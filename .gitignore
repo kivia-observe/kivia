@@ -1,6 +1,6 @@
-dyno_service/.env.local
+kivia_service/.env.local
 
-dyno_service/.env.dev
+kivia_service/.env.dev
 
 email_service/.env
 
