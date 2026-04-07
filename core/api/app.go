@@ -24,7 +24,7 @@ type Server struct {
 	app *fiber.App
 
 	config config.Config
-	
+
 	cancel context.CancelFunc
 }
 
@@ -85,9 +85,9 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	// app.Use(cors.New(cors.Config{
 	// 	AllowOrigins: []string{"http://localhost:3000"},
 	// 	AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-	// 	AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Dyno-Api-Key", "X-User-ID"},
+	// 	AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Kivia-Api-Key", "X-User-ID"},
 	// }))
-	
+
 	app.Get("/health", func(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
@@ -110,7 +110,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	authRouter.Post("/refresh", authhandler.Refresh)
 
 	authRouter.Get("/google", authhandler.GoogleRedirect)
-	
+
 	authRouter.Get("/google/callback", authhandler.GoogleCallback)
 
 	authRouter.Post("/verify-otp", authhandler.VerifyOTP)
@@ -150,19 +150,19 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	userRouter.Delete("/me", userHandler.DeleteUser)
 
 	userRouter.Put("/me", userHandler.UpdateUser)
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if err := logService.LogConsumer(ctx); err != nil {
 		slog.Error("Error starting log consumer: ", err)
 	}
-	
+
 	return &Server{app: app, config: cfg, cancel: cancel}
 }
 
 func (s *Server) Start() error {
 
 	defer s.cancel()
-	
+
 	return s.app.Listen(":" + s.config.Port)
 }

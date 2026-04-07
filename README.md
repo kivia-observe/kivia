@@ -1,4 +1,4 @@
-# Dyno
+# Kivia
 
 API observability platform that monitors and logs HTTP requests from your applications. Integrate the Go SDK into your services to automatically capture request metadata and view it through the dashboard.
 
@@ -6,8 +6,8 @@ API observability platform that monitors and logs HTTP requests from your applic
 
 ```
 ┌─────────────┐     ┌───────┐     ┌──────────────┐     ┌──────────┐     ┌────────────┐
-│  Your App   │────▶│ NGINX │────▶│ Dyno Service │────▶│ RabbitMQ │────▶│ PostgreSQL │
-│ (Dyno SDK)  │     │       │     │  (Fiber v3)  │     │          │     │            │
+│  Your App   │────▶│ NGINX │────▶│ Kivia Service │────▶│ RabbitMQ │────▶│ PostgreSQL │
+│ (Kivia SDK) │     │       │     │  (Fiber v3)   │     │          │     │            │
 └─────────────┘     └───────┘     └──────────────┘     └──────────┘     └────────────┘
                         │
                         ▼
@@ -17,7 +17,7 @@ API observability platform that monitors and logs HTTP requests from your applic
 ```
 
 - **NGINX** — Reverse proxy with rate limiting, CORS, and JWT validation via `auth_request`
-- **Dyno Service** — Go/Fiber API handling auth, projects, API keys, and log ingestion
+- **Kivia Service** — Go/Fiber API handling auth, projects, API keys, and log ingestion
 - **RabbitMQ** — Async log processing queue (`log_queue`) for non-blocking ingestion
 - **PostgreSQL** — Primary data store with auto-migrations on startup
 - **Email Service** — Fiber-based email microservice
@@ -57,10 +57,10 @@ Services will be available at:
 
 ### Environment Variables
 
-Create a `.env.dev` in `dyno_service/`:
+Create a `.env.dev` in `kivia_service/`:
 
 ```env
-DATABASE_URL=postgresql://postgres:@postgres:5432/dyno
+DATABASE_URL=postgresql://postgres:@postgres:5432/kivia
 PORT=8081
 JWT_ACCESS_TOKEN_SECRET=<64-char-hex>
 JWT_REFRESH_TOKEN_SECRET=<64-char-hex>
@@ -100,7 +100,7 @@ APP_ENV=dev
 Install the Go SDK:
 
 ```bash
-go get github.com/winnerx0/dyno-sdk
+go get github.com/winnerx0/kivia-sdk
 ```
 
 Wrap your HTTP handlers to auto-capture requests:
@@ -110,11 +110,11 @@ package main
 
 import (
     "net/http"
-    dynosdk "github.com/winnerx0/dyno-sdk"
+    kiviaSdk "github.com/winnerx0/kivia-sdk"
 )
 
 func main() {
-    client := dynosdk.NewClient("your-api-key")
+    client := kiviaSdk.NewClient("your-api-key")
 
     mux := http.NewServeMux()
     mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -125,14 +125,14 @@ func main() {
 }
 ```
 
-The SDK captures path, status code, IP address, timestamp, and latency for each request and sends it asynchronously to the Dyno API.
+The SDK captures path, status code, IP address, timestamp, and latency for each request and sends it asynchronously to the Kivia API.
 
 ## Project Structure
 
 ```
-dyno/
-├── dyno_service/           # Main backend API
-│   ├── cmd/dyno/           # Entry point
+kivia/
+├── kivia_service/          # Main backend API
+│   ├── cmd/kivia/          # Entry point
 │   ├── api/                # Server & route setup
 │   ├── internal/
 │   │   ├── auth/           # JWT authentication
@@ -147,7 +147,7 @@ dyno/
 │   │   ├── rabbitmq/       # RabbitMQ client & setup
 │   │   └── utils/          # Error types
 │   └── migrations/         # SQL migrations (auto-run)
-├── dyno-sdk/               # Go SDK for client integration
+├── kivia-sdk/              # Go SDK for client integration
 ├── email_service/          # Email microservice
 ├── nginx/                  # NGINX reverse proxy config
 ├── frontend/               # Next.js dashboard (separate repo)
@@ -156,7 +156,7 @@ dyno/
 
 ## How It Works
 
-1. Your application uses the Dyno SDK which wraps your HTTP handlers
+1. Your application uses the Kivia SDK which wraps your HTTP handlers
 2. Each request is captured and sent to `POST /api/v1/logs/create` with your API key
 3. The log is published to a RabbitMQ queue and a `202 Accepted` is returned immediately
 4. A consumer goroutine processes the queue and persists logs to PostgreSQL
