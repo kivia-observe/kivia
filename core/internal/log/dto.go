@@ -41,5 +41,4 @@ type LogChart struct {
 
 type LogBar struct {
 	Status int    `json:"status"`
-	Path   string `json:"path"`
 }

@@ -94,11 +94,11 @@ func (r Repository) GetLogCountByProjectId(projectId string) int {
 func (r Repository) GetLogsForChart(projectId string) ([]LogChart, error) {
 
 	query := `
-	SELECT DATE_TRUNC('day', logs.timestamp) as date, logs.status, logs.path, COUNT(*) as count
+	SELECT DATE_TRUNC('day', logs.timestamp) as date, logs.status, COUNT(*) as count
 	FROM logs
 	JOIN api_keys ON logs.api_key_id = api_keys.id
 	WHERE api_keys.project_id = $1
-	GROUP BY date, logs.status, logs.path
+	GROUP BY date, logs.status
 	ORDER BY date DESC
 	`
 
@@ -127,12 +127,12 @@ func (r Repository) GetLogsForChart(projectId string) ([]LogChart, error) {
 		if chart, exists := chartsMap[date]; exists {
 			chartsMap[date] = LogChart{
 				Date: chart.Date,
-				Logs: append(chart.Logs, LogBar{Status: status, Path: path}),
+				Logs: append(chart.Logs, LogBar{Status: status}),
 			}
 		} else {
 			chartsMap[date] = LogChart{
 				Date: date,
-				Logs: []LogBar{{Status: status, Path: path}},
+				Logs: []LogBar{{Status: status}},
 			}
 		}
 	}
