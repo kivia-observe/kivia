@@ -115,10 +115,9 @@ func (r Repository) GetLogsForChart(projectId string) ([]LogChart, error) {
 	for rows.Next() {
 		var date time.Time
 		var status int
-		var path string
 		var count int
 
-		err := rows.Scan(&date, &status, &path, &count)
+		err := rows.Scan(&date, &status, &count)
 
 		if err != nil {
 			return []LogChart{}, err
