@@ -62,7 +62,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 
 	logRepository := log.NewRepository(db)
 
-	logService := log.NewLogService(logRepository, apiKeyRepository, rabbitMQClient, server)
+	logService := log.NewLogService(logRepository, apiKeyRepository, projectRepository, rabbitMQClient, server)
 
 	logHandler := log.NewLogHandler(*logService)
 
@@ -141,6 +141,8 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	logRouter.Get("/all/:projectId", middleware.AuthMiddlware, logHandler.GetLogsByProjectId)
 
 	logRouter.Get("/stream/:projectId", middleware.AuthMiddlware, server.HandleConnection)
+
+	logRouter.Get("/chart/:projectId", middleware.AuthMiddlware, logHandler.GetLogsForChart)
 
 	// user routes
 	userRouter := v1.Group("/users", middleware.AuthMiddlware)

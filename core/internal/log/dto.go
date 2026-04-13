@@ -3,7 +3,6 @@ package log
 import "time"
 
 type createLogRequest struct {
-
 	Path string `json:"path" validate:"required"`
 
 	Status int `json:"status" validate:"required"`
@@ -33,4 +32,14 @@ type LogResponse struct {
 	IPAddress string    `json:"ip_address,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	ApiKey    string    `json:"api_key"`
+}
+
+type LogChart struct {
+	Date time.Time `json:"date"`
+	Logs []LogBar  `json:"logs"`
+}
+
+type LogBar struct {
+	Status int    `json:"status"`
+	Path   string `json:"path"`
 }

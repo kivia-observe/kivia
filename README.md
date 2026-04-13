@@ -5,9 +5,9 @@ API observability platform that monitors and logs HTTP requests from your applic
 ## Architecture
 
 ```
-┌─────────────┐     ┌───────┐     ┌──────────────┐     ┌──────────┐     ┌────────────┐
+┌─────────────┐     ┌───────┐     ┌──────────────┐       ┌──────────┐     ┌────────────┐
 │  Your App   │────▶│ NGINX │────▶│ Kivia Service │────▶│ RabbitMQ │────▶│ PostgreSQL │
-│ (Kivia SDK) │     │       │     │  (Fiber v3)   │     │          │     │            │
+│ (Kivia SDK) │     │       │     │  (Fiber v3)   │               │          │     │            │
 └─────────────┘     └───────┘     └──────────────┘     └──────────┘     └────────────┘
                         │
                         ▼
@@ -100,7 +100,7 @@ APP_ENV=dev
 Install the Go SDK:
 
 ```bash
-go get github.com/winnerx0/kivia-sdk
+go get github.com/kivia-observe/kivia-sdk-go
 ```
 
 Wrap your HTTP handlers to auto-capture requests:
@@ -110,7 +110,7 @@ package main
 
 import (
     "net/http"
-    kiviaSdk "github.com/winnerx0/kivia-sdk"
+    kiviaSdk "github.com/kivia-observe/kivia-sdk-go"
 )
 
 func main() {

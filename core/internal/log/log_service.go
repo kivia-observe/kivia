@@ -14,21 +14,25 @@ import (
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	apikey "github.com/winnerx0/kivia/internal/api_key"
+	"github.com/winnerx0/kivia/internal/project"
 	"github.com/winnerx0/kivia/internal/rabbitmq"
 	"github.com/winnerx0/kivia/internal/sse"
+	"github.com/winnerx0/kivia/internal/utils"
 )
 
 type Logservice struct {
 	repo           *Repository
 	apiKeyRepo     *apikey.Repository
+	projectRepo 	*project.Repository
 	rabbitMQClient *rabbitmq.RabbitMQClient
 	eventServer    *sse.EventServer
 }
 
-func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, rabbitMQClient *rabbitmq.RabbitMQClient, eventServer *sse.EventServer) *Logservice {
+func NewLogService(repo *Repository, apiKeyRepo *apikey.Repository, projectRepo *project.Repository, rabbitMQClient *rabbitmq.RabbitMQClient, eventServer *sse.EventServer) *Logservice {
 	return &Logservice{
 		repo:           repo,
 		apiKeyRepo:     apiKeyRepo,
+		projectRepo:      projectRepo,
 		rabbitMQClient: rabbitMQClient,
 		eventServer:    eventServer,
 	}
@@ -39,7 +43,7 @@ func (s Logservice) CreateLog(createLogRequest createLogRequest, apiKey string) 
 	apiKeyHash := sha256.Sum256([]byte(apiKey))
 
 	apiKeyHex := hex.EncodeToString(apiKeyHash[:])
-	
+
 	apiKeyId, err := s.apiKeyRepo.FindIdById(apiKeyHex)
 
 	if err != nil {
@@ -112,11 +116,10 @@ func (s Logservice) GetLogsByProjectId(projectId string, startDate *string, endD
 
 	total := s.repo.GetLogCountByProjectId(projectId)
 
-
 	return PaginatedLogResponse{
-		Logs: logs,
-		Page: p,
-		Items: len(logs),
+		Logs:       logs,
+		Page:       p,
+		Items:      len(logs),
 		TotelItems: total,
 	}, nil
 }
@@ -154,5 +157,23 @@ func (s Logservice) LogConsumer(ctx context.Context) error {
 	}()
 
 	return nil
+
+}
+
+func (s Logservice) GetLogsForChart(projectId string) ([]LogChart, error) {
+
+	projectExists, err := s.projectRepo.ExistsById(projectId)
+
+	if !projectExists {
+		return []LogChart{}, utils.ErrProjectNotFound
+	}
+
+	logs, err := s.repo.GetLogsForChart(projectId)
+
+	if err != nil {
+		return []LogChart{}, err
+	}
+
+	return logs, nil
 
 }
