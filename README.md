@@ -67,6 +67,7 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
 GOOGLE_FRONTEND_URL=http://localhost:3000
 KIVIA_API_KEY=
+CERTBOT_EMAIL=admin@example.com
 ```
 
 `core` and `email_service` both read from the root `.env`; their service-specific ports are set by Docker Compose.
@@ -95,7 +96,7 @@ Use `docker-compose-prod.yml` for the production-style container network and por
 docker compose -f docker-compose-prod.yml up --build
 ```
 
-Production compose exposes NGINX on `http://localhost:80` and keeps internal services on the `internal` Docker network.
+Production compose exposes NGINX on `http://localhost:80` and `https://localhost:443`, keeps internal services on the `internal` Docker network, and uses Certbot to issue and renew TLS certificates for `kivia.winnerx0.dev`.
 
 ## API Routes
 
