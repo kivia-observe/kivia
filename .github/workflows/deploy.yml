@@ -70,7 +70,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: mkdir -p /opt/kron
+          script: mkdir -p /opt/kivia
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
