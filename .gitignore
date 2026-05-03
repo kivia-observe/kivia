@@ -1,3 +1,8 @@
+.env
+.env.local
+.env.dev
+
+kivia_service/.env
 kivia_service/.env.local
 
 kivia_service/.env.dev
