@@ -26,7 +26,7 @@ services:
       - internal
 
   email_service:
-    build: './email_service'
+    build: './email'
     container_name: email_service
     ports:
       - '8082'
