@@ -26,11 +26,11 @@ type Config struct {
 func Load() *Config {
 
 	return &Config{
-		DBUrl:                 getEnv("DATABASE_URL", "postgresql://postgres:password@localhost:5000/kivia"),
-		Port:                  getEnv("PORT", "8081"),
+		DBUrl:                 getEnv("DATABASE_URL", ""),
+		Port:                  getEnv("PORT", ""),
 		JwtAccessTokenSecret:  getEnv("JWT_ACCESS_TOKEN_SECRET", ""),
 		JwtRefreshTokenSecret: getEnv("JWT_REFRESH_TOKEN_SECRET", ""),
-		RabbitMQConnectionUrl: getEnv("RABBITMQ_CONNECTION_URL", "amqp://guest:guest@localhost:5672"),
+		RabbitMQConnectionUrl: getEnv("RABBITMQ_CONNECTION_URL", ""),
 		GoogleClientID:        getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret:    getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURL:     getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/auth/google/callback"),
