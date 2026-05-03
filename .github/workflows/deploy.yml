@@ -89,11 +89,7 @@ jobs:
             git -C "$DEPLOY_DIR" reset --hard "origin/$BRANCH"
 
             cd "$DEPLOY_DIR"
-            test -f .env
             docker compose -f docker-compose-prod.yml down --remove-orphans
-            CERTBOT_EMAIL="$(grep -E '^CERTBOT_EMAIL=' .env | tail -n1 | cut -d= -f2-)"
-            test -n "$CERTBOT_EMAIL"
-            docker compose -f docker-compose-prod.yml run --rm -p 80:80 --entrypoint certbot certbot certonly --standalone --non-interactive --agree-tos --keep-until-expiring --email "$CERTBOT_EMAIL" -d kivia.winnerx0.dev
             docker compose -f docker-compose-prod.yml build --no-cache
             docker compose -f docker-compose-prod.yml up -d
             sleep 5
