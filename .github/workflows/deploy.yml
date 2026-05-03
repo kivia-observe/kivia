@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        directory: ["core", "email"]
+        directory: ["./core", "./email"]
 
     defaults:
       run:
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: ./frontend
     steps:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
