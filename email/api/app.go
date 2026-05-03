@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"log"
-	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/winnerx0/kivia/email_service/internal/config"
