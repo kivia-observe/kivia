@@ -1,0 +1,957 @@
+"use client";
+
+import { useState } from "react";
+import { use } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import {
+  Copy,
+  Check,
+  Plus,
+  RefreshCw,
+  TriangleAlert,
+  KeyRound,
+  Activity,
+  FolderX,
+  ArrowLeft,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  getProjects,
+  getApiKeys,
+  createApiKey,
+  revokeApiKey,
+  getLogs,
+  getLogsChart,
+  type ApiKey,
+  type Log,
+  type LogChart,
+} from "@/lib/api";
+import { useLogStream } from "@/hooks/useLogStream";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatTimestamp(ts: string) {
+  return new Date(ts).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function StatusBadge({ status }: { status: number }) {
+  let className = "";
+
+  if (status >= 200 && status < 300) {
+    className =
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60";
+  } else if (status >= 300 && status < 400) {
+    className =
+      "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/60";
+  } else if (status >= 400 && status < 500) {
+    className =
+      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60";
+  } else if (status >= 500) {
+    className =
+      "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60";
+  }
+
+  return (
+    <Badge
+      variant="outline"
+      className={`font-mono text-xs px-1.5 py-0 ${className}`}
+    >
+      {status}
+    </Badge>
+  );
+}
+
+// ── API Keys Tab ──────────────────────────────────────────────────────────
+
+function ApiKeysTab({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [keyName, setKeyName] = useState("");
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const envPresets = ["production", "staging", "development", "test"];
+
+  const { data: apiKeys = [], isLoading } = useQuery({
+    queryKey: ["apiKeys", projectId],
+    queryFn: () => getApiKeys(projectId),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => createApiKey(name, projectId),
+    onSuccess: (res) => {
+      setNewKey(res.api_key);
+      setDialogOpen(false);
+      setKeyName("");
+      setShowKeyDialog(true);
+      queryClient.invalidateQueries({ queryKey: ["apiKeys", projectId] });
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create API key"
+      );
+    },
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => revokeApiKey(id),
+    onSuccess: () => {
+      toast.success("API key revoked");
+      queryClient.invalidateQueries({ queryKey: ["apiKeys", projectId] });
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to revoke key"
+      );
+    },
+  });
+
+  function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!keyName.trim()) return;
+    createMutation.mutate(keyName.trim());
+  }
+
+  function copyKey() {
+    if (!newKey) return;
+    navigator.clipboard.writeText(newKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-display text-base font-semibold">API Keys</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage keys used to authenticate SDK requests
+          </p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          New Key
+        </Button>
+      </div>
+
+      {/* Create Key Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => setDialogOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Create a new API key</DialogTitle>
+            <DialogDescription>
+              Give this key a descriptive name so you can identify it later.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate}>
+            <div className="py-4 space-y-2">
+              <Label htmlFor="key-name">Environment</Label>
+              <Input
+                id="key-name"
+                placeholder="e.g. production"
+                value={keyName}
+                onChange={(e) => setKeyName(e.target.value)}
+                required
+                autoFocus
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {envPresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setKeyName(preset)}
+                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                      keyName === preset
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Creating\u2026" : "Create key"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Show New Key Dialog */}
+      <Dialog
+        open={showKeyDialog}
+        onOpenChange={(open) => setShowKeyDialog(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Your new API key</DialogTitle>
+            <DialogDescription>
+              Copy this key now. For security reasons, it will not be shown
+              again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-start gap-2.5 rounded-lg border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60 px-3.5 py-3">
+              <TriangleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800 dark:text-amber-400 font-medium">
+                This key will only be shown once. Store it somewhere safe.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg border bg-muted px-3 py-2.5 text-sm font-mono break-all leading-relaxed">
+                {newKey}
+              </code>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyKey}
+                aria-label="Copy key"
+                className="shrink-0"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowKeyDialog(false)}>
+              I&apos;ve saved this key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Keys Table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : apiKeys.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 py-14 text-center">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-muted">
+            <KeyRound className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="font-display text-sm font-medium mb-0.5">No API keys yet</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            Create a key to start sending requests with the SDK.
+          </p>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Create your first key
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-xl border overflow-hidden bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                  Environment
+                </TableHead>
+                <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                  Status
+                </TableHead>
+                <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                  Created
+                </TableHead>
+                <TableHead className="text-right font-display font-semibold text-xs uppercase tracking-wider">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {apiKeys.map((key: ApiKey) => (
+                <TableRow key={key.id}>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {key.name}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {key.revoked ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-muted-foreground border-muted-foreground/30"
+                      >
+                        Revoked
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60"
+                      >
+                        Active
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(key.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {!key.revoked && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={revokeMutation.isPending}
+                        onClick={() => revokeMutation.mutate(key.id)}
+                        className="text-destructive border-destructive/30 hover:bg-destructive hover:text-white"
+                      >
+                        {revokeMutation.isPending ? "Revoking\u2026" : "Revoke"}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Logs Tab ──────────────────────────────────────────────────────────────
+
+const LOGS_PER_PAGE = 10;
+
+function RequestStatusChart({ chartData }: { chartData: LogChart[] }) {
+  if (!chartData.length) return null;
+
+  const dailyStatusCounts = chartData.reduce(
+    (acc, bucket) => {
+      const dayKey = new Date(bucket.date).toISOString().slice(0, 10);
+
+      if (!acc[dayKey]) {
+        acc[dayKey] = { "2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0 };
+      }
+
+      for (const log of bucket.logs) {
+        const count = log.count ?? 1;
+        const status = log.status;
+        if (status >= 200 && status < 300) acc[dayKey]["2xx"] += count;
+        else if (status >= 300 && status < 400) acc[dayKey]["3xx"] += count;
+        else if (status >= 400 && status < 500) acc[dayKey]["4xx"] += count;
+        else if (status >= 500) acc[dayKey]["5xx"] += count;
+      }
+
+      return acc;
+    },
+    {} as Record<string, { "2xx": number; "3xx": number; "4xx": number; "5xx": number }>
+  );
+
+  const dayKeys = Object.keys(dailyStatusCounts).sort((a, b) => a.localeCompare(b));
+
+  if (!dayKeys.length) return null;
+
+  const maxTotal = dayKeys.reduce((max, day) => {
+    const bucket = dailyStatusCounts[day];
+    const total = bucket["2xx"] + bucket["3xx"] + bucket["4xx"] + bucket["5xx"];
+    return Math.max(max, total);
+  }, 0);
+
+  if (!maxTotal) return null;
+
+  return (
+    <div className="mt-6 rounded-xl border bg-card px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Requests per day by status
+        </p>
+      </div>
+      <div className="flex items-end gap-3 h-32">
+        {dayKeys.map((day) => {
+          const bucket = dailyStatusCounts[day];
+          const total = bucket["2xx"] + bucket["3xx"] + bucket["4xx"] + bucket["5xx"];
+
+          const h2xx = (bucket["2xx"] / maxTotal) * 100;
+          const h3xx = (bucket["3xx"] / maxTotal) * 100;
+          const h4xx = (bucket["4xx"] / maxTotal) * 100;
+          const h5xx = (bucket["5xx"] / maxTotal) * 100;
+
+          return (
+            <div key={day} className="flex flex-col items-center flex-1 min-w-10">
+              <div className="relative flex w-full flex-col justify-end rounded-md overflow-hidden bg-muted/60 border h-24">
+                {h2xx > 0 && (
+                  <div
+                    className="bg-emerald-400/80"
+                    style={{ height: `${h2xx}%` }}
+                  />
+                )}
+                {h3xx > 0 && (
+                  <div
+                    className="bg-sky-400/80"
+                    style={{ height: `${h3xx}%` }}
+                  />
+                )}
+                {h4xx > 0 && (
+                  <div
+                    className="bg-amber-400/80"
+                    style={{ height: `${h4xx}%` }}
+                  />
+                )}
+                {h5xx > 0 && (
+                  <div
+                    className="bg-red-400/80"
+                    style={{ height: `${h5xx}%` }}
+                  />
+                )}
+              </div>
+              <span className="mt-1 text-[10px] text-muted-foreground truncate max-w-full" title={day}>
+                {formatDate(day)}
+              </span>
+              <span className="text-[10px] text-muted-foreground/70">
+                {total}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400/80" />
+          <span>2xx</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-sky-400/80" />
+          <span>3xx</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-400/80" />
+          <span>4xx</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-red-400/80" />
+          <span>5xx</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogsTab({ projectId }: { projectId: string }) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [statusCode, setStatusCode] = useState("");
+  const [apiKeyType, setApiKeyType] = useState("");
+  const [page, setPage] = useState(1);
+
+  const hasFilters = !!(startDate || endDate || statusCode || apiKeyType);
+  const { logs: streamedLogs, connected, clear: clearStream } = useLogStream(
+    projectId,
+    page === 1 && !hasFilters
+  );
+
+  const { data: apiKeys = [] } = useQuery({
+    queryKey: ["apiKeys", projectId],
+    queryFn: () => getApiKeys(projectId),
+  });
+
+  // Build a lookup map: api_key UUID -> name
+  const apiKeyNameMap = new Map(
+    apiKeys.map((k: ApiKey) => [k.id, k.name])
+  );
+
+  const environments = Array.from(
+    new Set(apiKeys.filter((k: ApiKey) => !k.revoked).map((k: ApiKey) => k.name))
+  );
+
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: [
+      "logs",
+      projectId,
+      page,
+      startDate || undefined,
+      endDate || undefined,
+      statusCode || undefined,
+      apiKeyType || undefined,
+    ],
+    queryFn: () =>
+      getLogs(
+        projectId,
+        page,
+        LOGS_PER_PAGE,
+        startDate || undefined,
+        endDate || undefined,
+        statusCode || undefined,
+        apiKeyType || undefined
+      ),
+  });
+
+  const { data: chartData = [], isLoading: chartLoading } = useQuery({
+    queryKey: ["logs-chart", projectId],
+    queryFn: () => getLogsChart(),
+  });
+
+  const paginatedLogs: Log[] = data?.logs ?? [];
+  const totalItems = data?.total_items ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / LOGS_PER_PAGE));
+
+  // On page 1 with no filters, prepend streamed logs (deduplicated)
+  const paginatedIds = new Set(paginatedLogs.map((l) => l.id));
+  const uniqueStreamed = streamedLogs.filter((l) => !paginatedIds.has(l.id));
+  const logs: Log[] = page === 1 && !hasFilters
+    ? [...uniqueStreamed, ...paginatedLogs]
+    : paginatedLogs;
+
+  function handleFilter(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPage(1);
+  }
+
+  function getPageNumbers() {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("ellipsis");
+      for (
+        let i = Math.max(2, page - 1);
+        i <= Math.min(totalPages - 1, page + 1);
+        i++
+      ) {
+        pages.push(i);
+      }
+      if (page < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  }
+
+  return (
+    <div className="flex min-h-[calc(100vh-15rem)] flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="font-display text-base font-semibold">Request Logs</h2>
+          </div>
+          {connected && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            clearStream();
+            refetch();
+          }}
+          disabled={isFetching}
+        >
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
+          />
+        </Button>
+      </div>
+
+      {/* Date filter */}
+      <form
+        onSubmit={handleFilter}
+        className="flex flex-wrap items-end gap-3 mb-6 p-4 rounded-xl bg-muted/30 border"
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="start-date" className="text-xs font-medium">
+            Start date
+          </Label>
+          <Input
+            id="start-date"
+            type="date"
+            className="w-40 h-8 text-sm"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="end-date" className="text-xs font-medium">
+            End date
+          </Label>
+          <Input
+            id="end-date"
+            type="date"
+            className="w-40 h-8 text-sm"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="status-code" className="text-xs font-medium">
+            Status code
+          </Label>
+          <select
+            id="status-code"
+            className="w-32 h-8 text-sm rounded-md border border-input bg-background px-2"
+            value={statusCode}
+            onChange={(e) => setStatusCode(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="200">2xx</option>
+            <option value="300">3xx</option>
+            <option value="400">4xx</option>
+            <option value="500">5xx</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="api-key-type" className="text-xs font-medium">
+            Environment
+          </Label>
+          <select
+            id="api-key-type"
+            className="w-36 h-8 text-sm rounded-md border border-input bg-background px-2"
+            value={apiKeyType}
+            onChange={(e) => setApiKeyType(e.target.value)}
+          >
+            <option value="">All</option>
+            {environments.map((env: string) => (
+              <option key={env} value={env}>
+                {env}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button
+          type="submit"
+          size="sm"
+          variant="outline"
+          disabled={isFetching}
+        >
+          Apply filter
+        </Button>
+        {(startDate || endDate || statusCode || apiKeyType) && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+              setStatusCode("");
+              setApiKeyType("");
+              setPage(1);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </form>
+
+      {chartLoading ? (
+        <Skeleton className="h-44 w-full rounded-xl mb-6" />
+      ) : (
+        <div className="mb-6">
+          <RequestStatusChart chartData={chartData} />
+        </div>
+      )}
+
+      {/* Logs table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 py-14 text-center">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-muted">
+            <Activity className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="font-display text-sm font-medium mb-0.5">No logs found</p>
+          <p className="text-xs text-muted-foreground">
+            No requests captured for the selected date range.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="rounded-xl border overflow-hidden bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    Path
+                  </TableHead>
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    Status
+                  </TableHead>
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    API Key
+                  </TableHead>
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    IP Address
+                  </TableHead>
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    Latency
+                  </TableHead>
+                  <TableHead className="font-display font-semibold text-xs uppercase tracking-wider">
+                    Timestamp
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log: Log) => (
+                  <TableRow key={log.id}>
+                    <TableCell
+                      className="font-mono text-sm max-w-50 truncate"
+                      title={log.path}
+                    >
+                      {log.path}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={log.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {apiKeyNameMap.get(log.api_key) || log.api_key}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground font-mono">
+                      {log.ip_address}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground tabular-nums">
+                      {log.latency}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatTimestamp(log.timestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="sticky bottom-0 z-30 mt-auto bg-background/95 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="relative flex min-h-10 items-center justify-center">
+              <p className="absolute left-0 hidden text-sm text-muted-foreground sm:block">
+                {totalItems} total log{totalItems !== 1 ? "s" : ""}
+              </p>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      aria-disabled={page <= 1}
+                      className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {getPageNumbers().map((p, i) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={p === page}
+                          onClick={() => setPage(p)}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      aria-disabled={page >= totalPages}
+                      className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
+
+type Tab = "api-keys" | "logs";
+
+const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "api-keys", label: "API Keys", icon: KeyRound },
+  { id: "logs", label: "Request Logs", icon: Activity },
+];
+
+export default function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: projectId } = use(params);
+  const [activeTab, setActiveTab] = useState<Tab>("api-keys");
+
+  const { data: projects = [], isLoading: loadingProject } = useQuery({
+    queryKey: ["projects"],
+    queryFn: getProjects,
+  });
+
+  const project = projects.find((p) => p.id === projectId) ?? null;
+
+  if (!loadingProject && !project) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-10 w-full min-h-[calc(100vh-4rem)]">
+        <div className="flex flex-col items-center text-center max-w-md">
+          <div className="relative mb-6">
+            <p className="text-[8rem] leading-none font-display font-black tracking-tighter text-primary/10 select-none">
+              404
+            </p>
+            <p className="absolute inset-0 flex items-center justify-center text-5xl font-display font-bold tracking-tighter text-primary">
+              404
+            </p>
+          </div>
+
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+            <FolderX className="h-6 w-6 text-muted-foreground" />
+          </div>
+
+          <h1 className="font-display text-xl font-bold tracking-tight">
+            Project not found
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            The project you&apos;re looking for doesn&apos;t exist or may have
+            been deleted.
+          </p>
+
+          <Separator className="my-6 max-w-xs" />
+
+          <div className="flex gap-3">
+            <Button nativeButton={false} render={<Link href="/projects" />}>
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              All Projects
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/dashboard" />}
+            >
+              Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-10 w-full">
+      {/* Header */}
+      <div className="mb-6 animate-fade-in-up">
+        {loadingProject ? (
+          <>
+            <Skeleton className="h-7 w-48 mb-1.5" />
+            <Skeleton className="h-4 w-32" />
+          </>
+        ) : (
+          <>
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              {project?.name ?? "Project"}
+            </h1>
+            {project && (
+              <p className="text-muted-foreground text-sm mt-1">
+                Created {formatDate(project.created_at)}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6 flex gap-1 rounded-lg bg-muted/40 p-1 w-fit animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="animate-fade-in-up" style={{ animationDelay: "160ms" }}>
+        {activeTab === "api-keys" ? (
+          <ApiKeysTab projectId={projectId} />
+        ) : (
+          <LogsTab projectId={projectId} />
+        )}
+      </div>
+    </div>
+  );
+}

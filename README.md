@@ -24,7 +24,7 @@ Your App + SDK
 - **RabbitMQ**: async queue for non-blocking log ingestion.
 - **PostgreSQL**: primary data store.
 - **Email Service**: OTP and transactional email delivery.
-- **Frontend**: Next.js dashboard in `frontend/`, maintained as a separate repo.
+- **Frontend**: Next.js dashboard in `frontend/`.
 
 ## Tech Stack
 
@@ -177,9 +177,9 @@ kivia/
 │   └── migrations/        # SQL migrations
 ├── email_service/         # Email microservice
 ├── nginx/                 # NGINX reverse proxy config
-├── frontend/              # Next.js dashboard, separate repo
-├── kivia-sdk-go/          # Go SDK, separate repo
-├── kivia-sdk-js/          # JS SDK, separate repo
+├── frontend/              # Next.js dashboard
+├── kivia-sdk-go/          # Go SDK
+├── kivia-sdk-js/          # JS SDK
 ├── docker-compose.yml
 └── docker-compose-prod.yml
 ```
@@ -188,4 +188,4 @@ kivia/
 
 - Local env files are ignored by git. Do not commit secrets.
 - If a secret has ever been committed, rotate it even after rewriting git history.
-- The frontend repo has its own git history under `frontend/`.
+- Frontend and SDK sources are tracked directly by the root repo.
