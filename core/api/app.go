@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	logging "log"
 	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
@@ -156,7 +157,7 @@ func NewServer(cfg config.Config, rabbitMQClient *rabbitmq.RabbitMQClient) *Serv
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if err := logService.LogConsumer(ctx); err != nil {
-		slog.Error("Error starting log consumer: ", err)
+		logging.Fatal("Error starting log consumer: ", err)
 	}
 
 	return &Server{app: app, config: cfg, cancel: cancel}
