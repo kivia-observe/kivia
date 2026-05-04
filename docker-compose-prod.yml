@@ -112,7 +112,7 @@ volumes:
   # kivia_db_data:
   rabbitmq_data:
   letsencrypt:
-    external: true
+    # external: true
   certbot_www:
 
 networks:
