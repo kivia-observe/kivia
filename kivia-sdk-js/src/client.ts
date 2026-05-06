@@ -6,7 +6,7 @@ export class KiviaClient {
 
   constructor(options: KiviaClientOptions) {
     this.apiKey = options.apiKey;
-    this.baseUrl = options.baseUrl || 'https://nginx-production-a9aa.up.railway.app/api/v1';
+    this.baseUrl = options.baseUrl || 'https://kivia.winnerx0.dev/api/v1';
   }
 
   /**
