@@ -9,11 +9,6 @@ on:
   push:
     tags:
       - "v*"
-
-defaults:
-    run:
-        working-directory: ./kivia-sdk-js
-
 jobs:
   publish:
     runs-on: ubuntu-latest
