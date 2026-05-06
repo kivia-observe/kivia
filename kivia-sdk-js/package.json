@@ -14,7 +14,7 @@
     "sdk"
   ],
   "author": "winnerx0",
-  "repository": {"url": "https://github.com/kivia-observe/kivia-sdk-js"},
+  "repository": {"url": "https://github.com/winnerx0/kivia-sdk-js"},
   "license": "MIT",
   "files": [
     "dist/**/*",
